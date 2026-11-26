@@ -191,8 +191,19 @@ module.exports = (ctx) => {
   }, { public: true });
 
   // ---------- outgoing messages
+  // סימולטור וואטסאפ (26.11, עמיחי: «שהצוות יוכל להריץ דמו ולעשות QA בלי חיבור אמיתי לווצאפ»):
+  // כל הודעת וואטסאפ שהמערכת שולחת נכנסת גם לטלפון המדומה בחדר הגבייה. משפחה שאין לה וואטסאפ אמיתי בדמו,
+  // או כשהשליחה האמיתית כבויה (S.waReal=false) — ההודעה נמסרת רק לסימולטור, ונחשבת «נשלחה».
+  const simPush = (f, chat, from, text) => {
+    S.sim = S.sim || []; S.simSeq = (S.simSeq || 0) + 1;
+    S.sim.push({ id: S.simSeq, at: C.nowISO(), fam: f.id, chat: chat === 'group' ? 'group' : 'dm', from: from === 'parent' ? 'parent' : 'bot', text: String(text).slice(0, 4000) });
+    if (S.sim.length > 800) S.sim.splice(0, S.sim.length - 800);
+    save(); return S.simSeq;
+  };
   const wa = async (f, text) => {
-    if (!WA_OK.has(f.phone)) return { ok: false, why: 'בדמו הגשר שולח וואטסאפ רק לטלפון של עמיחי' };
+    simPush(f, 'dm', 'bot', text);
+    if (S.waReal === false) return { ok: true, sim: true };
+    if (!WA_OK.has(f.phone)) return { ok: true, sim: true };
     try {
       const res = await fetch('http://127.0.0.1:3002/send-text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId: `972${f.phone.slice(1)}@c.us`, text, force: true }), signal: AbortSignal.timeout(15000) });
       return res.ok ? { ok: true } : { ok: false, why: `הגשר החזיר ${res.status}` };
@@ -211,7 +222,7 @@ module.exports = (ctx) => {
     const out = {};
     if (channel === 'whatsapp' || channel === 'both') {
       out.whatsapp = await wa(f, text);
-      ev(f, out.whatsapp.ok ? 'wa' : 'warn', out.whatsapp.ok ? `וואטסאפ נשלח להורי משפחת ${f.family}` : `וואטסאפ לא נשלח: ${out.whatsapp.why}`);
+      ev(f, out.whatsapp.ok ? 'wa' : 'warn', out.whatsapp.ok ? `וואטסאפ נשלח להורי משפחת ${f.family}${out.whatsapp.sim ? ' (לטלפון המדומה)' : ''}` : `וואטסאפ לא נשלח: ${out.whatsapp.why}`);
     }
     if (channel === 'email' || channel === 'both') {
       out.email = await mail(f, subject, text, button);
@@ -297,7 +308,7 @@ module.exports = (ctx) => {
   };
 
   // ---------- shared with 99_gabbai_wa.js (קבוצת הוואטסאפ של המוסד)
-  ctx.gabbai = { get S() { return S; }, INST, PUB, fam, famByPhone, normPhone, save, ev, view, persona, openLink, newLink, shekel, sign, cookie, GP };
+  ctx.gabbai = { get S() { return S; }, INST, PUB, fam, famByPhone, normPhone, save, ev, view, persona, openLink, newLink, shekel, sign, cookie, GP, simPush, WA_OK };
 
   // ---------- admin (session)
   r.get('/api/gabbai/live', ({ query }) => {

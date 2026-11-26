@@ -4,6 +4,7 @@
 import kit from '../kit.js';
 import charts from '../charts.js';
 import persona from '../gabbai-persona.js'; // סוגי הורים + ניסוח מותאם (26.11)
+import { phoneSim } from './gabbai-phone.js'; // טלפון מדומה עם וואטסאפ ל-QA (26.11)
 
 const { h, api, fmt, icon } = kit;
 
@@ -122,7 +123,7 @@ function livePanel(timers) {
 
 export async function mount(el, { setTitle } = {}) {
   setTitle?.('חדר הגבייה');
-  kit.loadCss?.('gabbai'); kit.loadCss?.('gabbai-persona');
+  kit.loadCss?.('gabbai'); kit.loadCss?.('gabbai-persona'); kit.loadCss?.('gabbai-phone');
   const timers = [];
   const d = await loadData();
   const st = { collected: d.collected, open: d.openReturned, agent: d.inAgent, human: d.human, rate: d.rate,
@@ -211,7 +212,7 @@ export async function mount(el, { setTitle } = {}) {
   const paintTheme = () => { const night = localStorage.getItem('gb-theme') === 'night'; page.classList.toggle('gb--night', night); themeBtn.textContent = night ? '☀ מצב יום' : '☾ מצב לילה'; themeBtn.setAttribute('aria-pressed', String(night)); };
   themeBtn.addEventListener('click', () => { localStorage.setItem('gb-theme', page.classList.contains('gb--night') ? 'day' : 'night'); paintTheme(); });
   paintTheme();
-  el.replaceChildren(page);
+  el.replaceChildren(page, phoneSim(timers));
   paintKpis();
 
   // ---------- simulation
@@ -249,6 +250,6 @@ export async function mount(el, { setTitle } = {}) {
     timers.push(setTimeout(() => { runBtn.disabled = false; runBtn.classList.remove('is-running'); runBtn.querySelector('span').textContent = 'הפעל סבב גבייה'; page.classList.remove('is-burst'); kit.toast?.('הסבב הסתיים: 11 פעולות בוצעו בידי הסוכנים', 'success'); }, 260 * seq.length + 300));
   });
 
-  return () => timers.forEach((t) => { clearInterval(t); clearTimeout(t); });
+  return () => { timers.forEach((t) => { clearInterval(t); clearTimeout(t); }); document.documentElement.classList.remove('gwa-lock'); };
 }
 export default { mount };

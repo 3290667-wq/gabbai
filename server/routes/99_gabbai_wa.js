@@ -150,8 +150,9 @@ module.exports = (ctx) => {
     await sendGroup(f ? welcomeText(f) : unknownText());
   }
 
-  async function answer({ phone, lid, name, text, msgId, dry }) {
-    const sendGroup = dry ? async (t) => t : sendGroupReal;
+  async function answer({ phone, lid, name, text, msgId, dry, sink, hkey }) {
+    const sendGroup = sink || (dry ? async (t) => t : sendGroupReal);
+    const HK = hkey || phone;
     const f = famOf(phone);
     if (!f) {
       if (Date.now() - (lastUnknown.get(phone || lid) || 0) < 5 * 60e3) return;
@@ -163,14 +164,14 @@ module.exports = (ctx) => {
     if (perHour.get(hk) > 40) return;
     const day = new Date().toISOString().slice(0, 10); W.usage[day] = (W.usage[day] || 0) + 1;
     if (W.usage[day] > 600) return sendGroup('המענה האוטומטי עמוס כרגע — המזכירות תחזור אליך. 🙏', { msgId, lid, text });
-    const hist = (W.hist[phone] || []).map((h) => `ההורה: ${h.q}\nאתה: ${h.a}`).join('\n\n');
+    const hist = (W.hist[HK] || []).map((h) => `ההורה: ${h.q}\nאתה: ${h.a}`).join('\n\n');
     const prompt = `הכרטיס של ההורה שכתב עכשיו (שמו בוואטסאפ: ${name || '—'}):\n${cardOf(f)}\n\n${hist ? `השיחה הקודמת איתו בקבוצה:\n${hist}\n\n` : ''}ההודעה החדשה שלו:\n${String(text).slice(0, 1500)}\n\nכתוב את התשובה שלך בלבד.`;
-    G.ev(f, 'say', `${f.parent} כתב בקבוצת ההורים: ${String(text).slice(0, 200)}`, 'parent');
+    G.ev(f, 'say', `${f.parent} כתב${sink ? ' בטלפון המדומה' : ' בקבוצת ההורים'}: ${String(text).slice(0, 200)}`, 'parent');
     const raw = await askClaude(prompt);
     if (!raw) return sendGroup(`ר׳ ${f.parent.split(' ')[0]}, לא הצלחתי לענות כרגע — העברתי למזכירות והן יחזרו אליך. 🙏`, { msgId, lid, text });
     const { text: out } = await applyTags(f, raw);
-    W.hist[phone] = [...(W.hist[phone] || []), { q: String(text).slice(0, 400), a: out.slice(0, 600) }].slice(-6); save();
-    G.ev(f, 'say', `«גבאי» ענה בקבוצה: ${out.slice(0, 200)}`, 'bot');
+    W.hist[HK] = [...(W.hist[HK] || []), { q: String(text).slice(0, 400), a: out.slice(0, 600) }].slice(-6); save();
+    G.ev(f, 'say', `«גבאי» ענה${sink ? ' בטלפון המדומה' : ' בקבוצה'}: ${out.slice(0, 200)}`, 'bot');
     return sendGroup(out, { msgId, lid, text });
   }
 
@@ -253,5 +254,47 @@ module.exports = (ctx) => {
 
   // הקבוצה עצמה נוצרת פעם אחת מהשרת (tools/gabbai-wa-group.cjs) וכותבת את jid+invite לקובץ — כאן רק טוענים מחדש
   r.post('/api/gabbai/wa/reload', () => { try { const x = JSON.parse(fs.readFileSync(FILE, 'utf8')); W.group = x.group || W.group; } catch { /* keep */ } return { group: W.group }; });
+  // ---------- סימולטור וואטסאפ בחדר הגבייה (בלי וואטסאפ אמיתי): צ׳אט פרטי עם «גבאי» + קבוצת ההורים, לכל משפחה
+  const typing = new Map(); // `${fam}:${chat}` → since
+  const simFam = (id) => { syncRegs(); const f = G.fam(id); if (!f) throw C.notFound('המשפחה לא נמצאה'); return f; };
+  const simHits = new Map();
+  r.get('/api/gabbai/sim', ({ query }) => {
+    syncRegs();
+    const after = +query.after || 0; const famId = String(query.fam || '');
+    const msgs = (G.S.sim || []).filter((m) => m.fam === famId && m.id > after).slice(-200);
+    return {
+      families: G.S.families.map((f) => ({ id: f.id, family: f.family, parent: f.parent, phone: f.phone, debt: f.debt ? f.debt.amount : 0, real: G.WA_OK.has(f.phone) })),
+      msgs, seq: G.S.simSeq || 0, waReal: G.S.waReal !== false,
+      typing: ['dm', 'group'].filter((c) => typing.has(`${famId}:${c}`)),
+      joined: !!(G.S.simJoined || {})[famId], group: W.group?.name || `הורי ${G.INST}`,
+    };
+  });
+  r.post('/api/gabbai/sim/send', ({ body }) => {
+    const f = simFam(body.fam); const chat = body.chat === 'group' ? 'group' : 'dm';
+    const text = String(body.text || '').trim().slice(0, 1500); if (!text) throw C.bad('ההודעה ריקה');
+    const k = `${f.id}:${Math.floor(Date.now() / 60e3)}`; simHits.set(k, (simHits.get(k) || 0) + 1);
+    if (simHits.get(k) > 12) throw new C.HttpError(429, 'יותר מדי הודעות בדקה — רגע');
+    G.simPush(f, chat, 'parent', text);
+    if (f.contacts) { f.contacts = 0; G.save(); }
+    const tk = `${f.id}:${chat}`; typing.set(tk, Date.now());
+    enqueue(() => answer({ phone: f.phone, name: f.parent, text, hkey: `sim:${f.id}:${chat}`, sink: async (t) => { G.simPush(f, chat, 'bot', t); return t; } })
+      .finally(() => typing.delete(tk)));
+    return { ok: true };
+  });
+  r.post('/api/gabbai/sim/join', ({ body }) => {
+    const f = simFam(body.fam);
+    G.S.simJoined = G.S.simJoined || {}; G.S.simJoined[f.id] = C.nowISO(); G.save();
+    G.ev(f, 'wa', `${f.parent} (משפחת ${f.family}) הצטרף לקבוצת ההורים בטלפון המדומה — זוהה לפי הטלפון ונשלחה ברכה אישית`);
+    G.simPush(f, 'group', 'bot', welcomeText(f));
+    return { ok: true };
+  });
+  r.post('/api/gabbai/sim/real', ({ body }) => { G.S.waReal = !!body.on; G.save(); G.ev(null, 'wa', body.on ? 'שליחה לוואטסאפ האמיתי הופעלה (רק לטלפונים המורשים בדמו)' : 'וואטסאפ אמיתי כבוי — כל ההודעות מגיעות רק לטלפון המדומה'); return { ok: true, waReal: G.S.waReal }; });
+  r.post('/api/gabbai/sim/clear', ({ body }) => {
+    const f = simFam(body.fam);
+    G.S.sim = (G.S.sim || []).filter((m) => m.fam !== f.id); if (G.S.simJoined) delete G.S.simJoined[f.id];
+    delete W.hist[`sim:${f.id}:dm`]; delete W.hist[`sim:${f.id}:group`]; save(); G.save();
+    return { ok: true };
+  });
+
   ctx.gabbaiWa = { get W() { return W; }, save };
 };
