@@ -10,3 +10,5 @@
 .pay-ok h1 { font-size: 30px; margin: 8px 0; color: var(--ok); }
 .pay-ok .pa-bar { margin: 14px 0 6px; }
 .pay .btn { width: 100%; }
+.pay-row > * { min-width: 0; }
+.pay-row input { width: 100%; min-width: 0; box-sizing: border-box; }

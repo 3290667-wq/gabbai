@@ -4,6 +4,7 @@
 import kit from '../kit.js';
 import charts from '../charts.js';
 import persona from '../gabbai-persona.js'; // סוגי הורים + ניסוח מותאם (26.11)
+import decide from '../gabbai-decide.js'; // «למה גבאי החליט ככה» — מנוע ההחלטה (26.11)
 import { phoneSim } from './gabbai-phone.js'; // טלפון מדומה עם וואטסאפ ל-QA (26.11)
 
 const { h, api, fmt, icon } = kit;
@@ -123,7 +124,7 @@ function livePanel(timers) {
 
 export async function mount(el, { setTitle } = {}) {
   setTitle?.('חדר הגבייה');
-  kit.loadCss?.('gabbai'); kit.loadCss?.('gabbai-persona'); kit.loadCss?.('gabbai-phone');
+  kit.loadCss?.('gabbai'); kit.loadCss?.('gabbai-persona'); kit.loadCss?.('gabbai-phone'); kit.loadCss?.('gabbai-decide');
   const timers = [];
   const d = await loadData();
   const st = { collected: d.collected, open: d.openReturned, agent: d.inAgent, human: d.human, rate: d.rate,
@@ -262,7 +263,7 @@ export async function mount(el, { setTitle } = {}) {
   const page = h('div', { class: 'gb' }, hero,
     h('div', { class: 'gb-kpis' }, Object.values(K).map((k) => k.el)),
     h('div', { class: 'gb-main' }, h('div', { class: 'gb-col' }, chart, tiles), h('div', { class: 'gb-aside' }, tasks, soon)),
-    live, persona.panel(timers), channels, agents);
+    live, decide.panel(timers), persona.panel(timers), channels, agents);
   el.replaceChildren(page, phoneSim(timers));
   paintKpis();
 

@@ -97,12 +97,12 @@ function classify(f) {
   } else if (s.unanswered >= 3) { key = 'silent'; why.push(`${s.unanswered} פניות בלי תשובה`); }
   else if (s.late >= 2 || (s.returned >= 2 && s.avgRem >= 1)) {
     key = 'procrastinator';
-    if (s.late) why.push(`${s.late} תשלומים באיחור`);
+    if (s.late) why.push(s.late === 1 ? 'תשלום אחד באיחור' : `${s.late} תשלומים באיחור`);
     if (s.returned >= 2) why.push(`${s.returned} החזרות של הוראת הקבע`);
-    if (s.avgRem >= 1) why.push(`בממוצע ${s.avgRem} תזכורות עד שמשלם`);
-  } else if (s.months < 3 && !s.tech) { key = 'newbie'; why.push(`${s.months} חודשים במוסד`); }
+    if (s.avgRem >= 1) why.push(s.avgRem === 1 ? 'בממוצע תזכורת אחת עד שמשלם' : `בממוצע ${s.avgRem} תזכורות עד שמשלם`);
+  } else if (s.months < 3 && !s.tech) { key = 'newbie'; why.push(s.months === 1 ? 'חודש אחד במוסד' : `${s.months} חודשים במוסד`); }
   else if (s.tech >= 1 && s.returned <= 1) { key = 'technical'; why.push(f.debt?.reason ? `החיוב נכשל: ${f.debt.reason}` : 'תקלה טכנית בחיוב'); if (!s.late) why.push('בדרך כלל משלם בזמן'); }
-  else if (!s.late && s.returned === 0) { key = 'reliable'; why.push(`${s.months} חודשים, כולם בזמן`); }
+  else if (!s.late && s.returned === 0) { key = 'reliable'; why.push(s.months === 1 ? 'חודש אחד, בזמן' : `${s.months} חודשים, כולם בזמן`); }
   else if (s.returned >= 2 || s.late) { key = 'procrastinator'; why.push(`${s.returned} החזרות`); }
   else { key = 'technical'; why.push('החזרה אחת בלבד'); }
   const auto = key;

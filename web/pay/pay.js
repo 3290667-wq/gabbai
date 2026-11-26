@@ -40,8 +40,8 @@ async function boot() {
     <form id="pf" class="pay-card" novalidate>
       <label class="pa-field">מספר כרטיס<input name="card" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" maxlength="23" required></label>
       <div class="pay-row">
-        <label class="pa-field">תוקף<input name="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" maxlength="5"></label>
-        <label class="pa-field">CVV<input name="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4"></label>
+        <label class="pa-field">תוקף<input name="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="חודש/שנה" maxlength="5"></label>
+        <label class="pa-field">3 ספרות בגב הכרטיס<input name="cvv" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4"></label>
       </div>
       <label class="pa-field">תעודת זהות של בעל הכרטיס<input name="id" inputmode="numeric" maxlength="9" placeholder="9 ספרות"></label>
       <p class="pa-err" id="perr" role="alert" hidden></p>

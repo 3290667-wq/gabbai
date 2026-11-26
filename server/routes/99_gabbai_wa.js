@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
+const GD = require('../lib/gabbai-decide'); // שכבת ההחלטה לפני Claude (26.11)
 
 const HOME = process.env.HOME || '/home/user';
 const CLAUDE = process.env.CLAUDE_BIN || path.join(HOME, '.nvm/versions/node/v23.11.1/bin/claude');
@@ -33,6 +34,7 @@ module.exports = (ctx) => {
   W.members = W.members || {}; // phone → { joined, greeted }
   W.hist = W.hist || {};       // phone → [{q, a}] (6 אחרונות)
   W.usage = W.usage || {};     // yyyy-mm-dd → count
+  W.dlog = W.dlog || [];       // יומן החלטות: {id, at, fam, family, text, intent, path:'fast'|'claude', ms, action, prob}
   let saveT = null;
   const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { fs.writeFileSync(FILE + '.tmp', JSON.stringify(W, null, 1)); fs.renameSync(FILE + '.tmp', FILE); }, 150); };
 
@@ -105,8 +107,12 @@ module.exports = (ctx) => {
     });
   }
 
-  async function applyTags(f, text) {
+  async function applyTags(f, text, d) {
     let t = text; const notes = [];
+    d = d || GD.decide(f, G.S);
+    if (d.action === 'human') t = t.replace(/\[(קישור|פריסה\s*\d?)\]/g, '[מזכירה]'); // בבירור — הקוד לא נותן ל-Claude לבקש כסף
+    if (!d.maxPlan) t = t.replace(/\[פריסה\s*\d?\]/g, '[מזכירה]');
+    if (!f.debt) t = t.replace(/\[(קישור|פריסה\s*\d?)\]/g, '');
     if (/\[קישור\]/.test(t)) {
       const amount = f.debt?.amount || f.monthly; const { url } = G.newLink(f, amount);
       G.ev(f, 'link', `«גבאי» בקבוצת ההורים יצר קישור תשלום ${G.shekel(amount)} למשפחת ${f.family}`);
@@ -114,7 +120,7 @@ module.exports = (ctx) => {
     }
     const pm = t.match(/\[פריסה\s*(\d)?\]/);
     if (pm) {
-      const total = f.debt?.amount || f.monthly; const n = Math.max(2, Math.min(4, parseInt(pm[1], 10) || 3)); const each = Math.ceil(total / n);
+      const total = f.debt?.amount || f.monthly; const n = Math.max(2, Math.min(d.maxPlan || 2, parseInt(pm[1], 10) || d.suggestPlan || 3)); const each = Math.ceil(total / n); // התקרה נקבעת במנוע ההחלטה, לא ב-Claude
       f.plan = { n, each, from: 'היום', paid: 0, at: C.nowISO() }; f.plans = (+f.plans || 0) + 1; G.save();
       const { url } = G.newLink(f, each, { n: 1, of: n });
       G.ev(f, 'plan', `«גבאי» בקבוצת ההורים סיכם עם משפחת ${f.family}: ${n} תשלומים של ${G.shekel(each)}`);
@@ -122,9 +128,16 @@ module.exports = (ctx) => {
     }
     if (/\[מזכירה\]/.test(t)) {
       G.ev(f, 'human', `«גבאי» בקבוצת ההורים העביר את משפחת ${f.family} למזכירות`);
-      t = t.replace(/\[מזכירה\]/g, '✔️ העברתי למזכירות — יחזרו אליך עוד היום.');
+      t = t.replace(/\[מזכירה\]/g, '✔️ העברתי למזכירות — יחזרו אליך עוד היום.').replace(/(✔️ העברתי למזכירות — יחזרו אליך עוד היום\.\s*)+/g, '✔️ העברתי למזכירות — יחזרו אליך עוד היום.');
     }
     return { text: t.replace(/https?:\/\/(?!mazkira\.de\/gabbai-bb513363\/)[^\s]+/g, '').trim(), notes };
+  }
+
+  function logDecision(f, text, intent, pathKind, ms, d) {
+    const id = (W.dlog.at(-1)?.id || 0) + 1;
+    W.dlog.push({ id, at: C.nowISO(), fam: f.id, family: f.family, text: String(text).slice(0, 160), intent, path: pathKind, ms, action: d.action, label: d.label, prob: d.prob });
+    if (W.dlog.length > 300) W.dlog.splice(0, W.dlog.length - 300);
+    save();
   }
 
   // ---------- תור אחד לכל הקבוצה (תשובה אחת בכל פעם, לפי הסדר)
@@ -167,9 +180,20 @@ module.exports = (ctx) => {
     const hist = (W.hist[HK] || []).map((h) => `ההורה: ${h.q}\nאתה: ${h.a}`).join('\n\n');
     const prompt = `הכרטיס של ההורה שכתב עכשיו (שמו בוואטסאפ: ${name || '—'}):\n${cardOf(f)}\n\n${hist ? `השיחה הקודמת איתו בקבוצה:\n${hist}\n\n` : ''}ההודעה החדשה שלו:\n${String(text).slice(0, 1500)}\n\nכתוב את התשובה שלך בלבד.`;
     G.ev(f, 'say', `${f.parent} כתב${sink ? ' בטלפון המדומה' : ' בקבוצת ההורים'}: ${String(text).slice(0, 200)}`, 'parent');
-    const raw = await askClaude(prompt);
+    const t0 = Date.now(); const d = GD.decide(f, G.S);
+    const quick = GD.fast(f, text, d, G);
+    if (quick) {
+      if (quick.intent === 'paid' && f.debt && !f.dispute) { f.dispute = true; G.save(); } // «כבר שילמתי» → בירור, בלי תזכורות (כמו בטלפון)
+      const { text: out } = await applyTags(f, quick.text, d);
+      logDecision(f, text, quick.intent, 'fast', Date.now() - t0, d);
+      W.hist[HK] = [...(W.hist[HK] || []), { q: String(text).slice(0, 400), a: out.slice(0, 600) }].slice(-6); save();
+      G.ev(f, 'say', `«גבאי» ענה${sink ? ' בטלפון המדומה' : ' בקבוצה'} (מענה מהיר, ${Date.now() - t0} מ״ש): ${out.slice(0, 200)}`, 'bot');
+      return sendGroup(out, { msgId, lid, text });
+    }
+    const raw = await askClaude(prompt + `\n\n${GD.directive(d)}`);
     if (!raw) return sendGroup(`ר׳ ${f.parent.split(' ')[0]}, לא הצלחתי לענות כרגע — העברתי למזכירות והן יחזרו אליך. 🙏`, { msgId, lid, text });
-    const { text: out } = await applyTags(f, raw);
+    const { text: out } = await applyTags(f, raw, d);
+    logDecision(f, text, 'claude', 'claude', Date.now() - t0, d);
     W.hist[HK] = [...(W.hist[HK] || []), { q: String(text).slice(0, 400), a: out.slice(0, 600) }].slice(-6); save();
     G.ev(f, 'say', `«גבאי» ענה${sink ? ' בטלפון המדומה' : ' בקבוצה'}: ${out.slice(0, 200)}`, 'bot');
     return sendGroup(out, { msgId, lid, text });
@@ -250,6 +274,24 @@ module.exports = (ctx) => {
   r.get('/api/gabbai/wa', () => {
     const members = Object.entries(W.members).filter(([p]) => p !== BOT_PHONE).map(([p, m]) => { const f = famOf(p); return { family: f?.family || null, parent: f?.parent || null, joined: m.joined, known: !!f }; });
     return { group: W.group ? { name: W.group.name, invite: inviteUrl() } : null, members, regs: Object.keys(W.regs).length, today: W.usage[new Date().toISOString().slice(0, 10)] || 0 };
+  });
+
+  // «למה גבאי החליט ככה» — ההחלטה לכל משפחה + יומן ההחלטות האחרונות, עם התוצאה (האם שולם אחרי הפנייה)
+  const INTENT_HE = { thanks: 'תודה', hello: 'ברכה', paid: '«כבר שילמתי»', human: 'בקשה לאדם', plan: 'פריסה', link: 'קישור לתשלום', when: 'מתי החיוב', fund: 'קרן הפינוקים', balance: 'מצב החשבון', claude: 'שאלה פתוחה' };
+  r.get('/api/gabbai/decide', ({ query }) => {
+    syncRegs();
+    const S = G.S;
+    const families = S.families.map((f) => ({ id: f.id, family: f.family, parent: f.parent, decision: GD.decide(f, S), directive: GD.directive(GD.decide(f, S)) }));
+    const paidAfter = (e) => Object.values(S.links).some((l) => l.fam === e.fam && l.paid_at && l.paid_at > e.at);
+    const log = W.dlog.filter((e) => !query.fam || e.fam === query.fam).slice(-40).reverse().map((e) => ({ ...e, intentHe: INTENT_HE[e.intent] || e.intent, paid: paidAfter(e) }));
+    const all = W.dlog; const fastL = all.filter((e) => e.path === 'fast'); const cl = all.filter((e) => e.path === 'claude');
+    const avg = (a) => (a.length ? Math.round(a.reduce((s, e) => s + e.ms, 0) / a.length) : null);
+    return { families, log, stats: { total: all.length, fast: fastL.length, claude: cl.length, avgFast: avg(fastL), avgClaude: avg(cl) } };
+  });
+  // בדיקה בלי לשלוח כלום: מה המסנן המהיר היה עונה להודעה (לחדר הגבייה ול-QA)
+  r.post('/api/gabbai/decide/try', ({ body }) => {
+    const f = simFam(body.fam); const d = GD.decide(f, G.S); const q = GD.fast(f, String(body.text || ''), d, G);
+    return { decision: d, fast: q ? { intent: INTENT_HE[q.intent] || q.intent, text: q.text } : null };
   });
 
   // הקבוצה עצמה נוצרת פעם אחת מהשרת (tools/gabbai-wa-group.cjs) וכותבת את jid+invite לקובץ — כאן רק טוענים מחדש

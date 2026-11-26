@@ -4,7 +4,7 @@ const API = new URL('../api/public/parent/', location.href).href;
 const ICO = new URL('../assets/icons/', import.meta.url).href;
 const I = (n, cls = 'gi') => `<img class="${cls}" src="${ICO}${n}.webp?v=2" alt="" draggable="false" decoding="async">`;
 const LOCK = `<svg class="gi-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>`;
-const METHOD = { debit: [I('bank'), 'הוראת קבע'], card: [I('card'), 'אשראי'], link: [I('link'), 'קישור תשלום'] };
+const METHOD = { debit: [I('bank'), 'הוראת קבע'], card: [I('card'), 'אשראי'], link: [I('link'), 'קישור תשלום'], transfer: [I('bank'), 'העברה בנקאית'], check: [I('check'), 'צ׳ק במזכירות'], cash: [I('card'), 'מזומן במזכירות'] };
 const STATUS = { ok: ['ok', 'שולם ✓'], fix: ['fix', 'חזר והוסדר'], wait: ['wait', 'ממתין לחיוב'] };
 const ils = (n) => `₪${Math.round(n).toLocaleString('he-IL')}`;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -12,8 +12,8 @@ const N = (s) => `<span class="num">${s}</span>`;
 const root = document.getElementById('pa');
 const crest = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 7c4-1 7 0 10 2 3-2 6-3 10-2v17c-4-1-7 0-10 2-3-2-6-3-10-2z" fill="none" stroke="#1d1405" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9v17" stroke="#1d1405" stroke-width="2.2"/></svg>`;
 const INST = 'תלמוד תורה «אור התורה»';
-const DONE = [{ t: 'מסיבת חנוכה עם סופגניות', s: 'לכל הכיתות · כסלו', i: I('donut') }, { t: 'ספרים חדשים לספריית הכיתה', s: '120 ספרי קריאה · חשון', i: I('books') }];
-const FUTURE = [{ t: 'מזגן חדש לכיתה ג׳', s: 'יעד ₪9,500', i: I('snow') }, { t: 'ערב הוקרה למתמידים', s: 'יעד ₪6,000', i: I('trophy') }, { t: 'ציוד ספורט לחצר', s: 'יעד ₪7,200', i: I('ball') }];
+const DONE = [{ t: 'כיבוד בשמחת תורה', s: 'לכל הכיתות · תשרי', i: I('party') }, { t: 'ספרים חדשים לספריית הכיתה', s: '120 ספרי קריאה · חשוון', i: I('books') }];
+const FUTURE = [{ t: 'טיול שנתי לגן החיות התנ״כי', s: 'יעד ₪4,500 · אחרי חנוכה', i: I('lion') }, { t: 'ערב הוקרה למתמידים', s: 'יעד ₪2,500', i: I('trophy') }, { t: 'ציוד ספורט לחצר', s: 'יעד ₪3,200', i: I('ball') }];
 let D = null;
 
 async function call(p, body) {
@@ -70,8 +70,8 @@ function render() {
   </header>
   ${debt ? `<section class="pa-alert" role="status">
       <span class="pa-alert__ic" aria-hidden="true">${I('card')}</span>
-      <div><b>נשאר להסדיר ${N(ils(debt.amount))}</b><small>הוראת הקבע לחודש ${esc(debt.month)} לא עברה (${esc(debt.reason)})${D.plan ? ` · סוכם הסדר: ${N(D.plan.n)} תשלומים של ${N(ils(D.plan.each))}` : ''}</small></div>
-      ${D.pay_url ? `<a class="btn btn-gold" href="${esc(D.pay_url)}">לתשלום מאובטח</a>` : `<button class="btn btn-gold" type="button" data-sheet="settle">להסדרה</button>`}
+      <div><b>נשאר להסדיר ${N(ils(debt.amount))}</b><small>החיוב לחודש ${esc(debt.month)} עדיין פתוח (${esc(debt.reason)})${D.plan ? ` · סוכם הסדר: ${N(D.plan.n)} תשלומים של ${N(ils(D.plan.each))}` : ''}</small></div>
+      ${D.pay_url ? `<a class="btn btn-gold" href="${esc(D.pay_url)}">לתשלום עכשיו</a>` : `<button class="btn btn-gold" type="button" data-sheet="settle">להסדרה</button>`}
     </section>` : ''}
   <section class="pa-hello">
     <h1>שלום משפחת ${esc(D.family)} ${I('wave', 'gi gi--h1')}</h1>
@@ -83,14 +83,14 @@ function render() {
   <div class="pa-grid">
     <section class="pa-card pa-heart" aria-labelledby="heart-h">
       <h2 id="heart-h">בזכות התשלומים שלכם — מה המוסד יכול לפנק את הילדים</h2>
-      <p class="lead">${N(fund.sharePct + '%')} מכל תשלום שמגיע בזמן נכנס ל«קרן הפינוקים» של הילדים. כשההורים משלמים בזמן — המוסד לא משלם עמלות ופיגורים, והכסף הולך לשמחה של הילדים.</p>
+      <p class="lead">${N(fund.sharePct + '%')} מכל תשלום שמגיע בזמן נכנס ל«קרן הפינוקים» של הילדים${fund.donations ? ', ולצדם תרומות של הורים וידידי המוסד' : ''}. כשההורים משלמים בזמן — המוסד לא משלם עמלות ופיגורים, והכסף הולך לשמחה של הילדים.</p>
       <div class="pa-next">
         <span class="pa-next__tag">הפינוק הבא בדרך</span>
-        <div class="pa-next__t"><i aria-hidden="true">${I('lion')}</i><b>${esc(fund.title)}</b></div>
+        <div class="pa-next__t"><i aria-hidden="true">${I('donut')}</i><b>${esc(fund.title)}</b></div>
         <div class="pa-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="התקדמות לעבר ${esc(fund.title)}"><div class="pa-bar__fill" id="pa-fill"></div></div>
         <div class="pa-bar__nums"><span>נאסף <b>${N(ils(fund.got))}</b> (${N(pct + '%')})</span><span>יעד ${N(ils(fund.goal))}</span></div>
         <p class="pa-missing">${missing > 0 ? `חסרים עוד ${N(ils(missing))} ל${esc(fund.title)}` : 'הגענו ליעד!'} ${I('party', 'gi gi--in')}</p>
-        <div class="pa-mine"><span aria-hidden="true">${I('heart')}</span><span>החלק שלכם בקרן השנה: <b>${N(ils(D.mine))}</b> — תודה!</span></div>
+        <div class="pa-mine"><span aria-hidden="true">${I('heart')}</span><span>החלק שלכם בקרן השנה (מהתשלומים שהגיעו בזמן): <b>${N(ils(D.mine))}</b> — תודה!</span></div>
       </div>
       <ul class="pa-tl">
         <li><h3>כבר קרה בזכותכם</h3></li>
@@ -100,7 +100,7 @@ function render() {
       </ul>
       <div class="pa-cta">
         <button class="btn btn-gold" type="button" data-sheet="method">${I('card', 'gi gi--btn')} לעדכן אמצעי תשלום</button>
-        <button class="btn btn-ghost" type="button" data-sheet="settle">להסדיר תשלום</button>
+        ${D.pay_url ? `<a class="btn btn-ghost" href="${esc(D.pay_url)}">לתשלום עכשיו</a>` : `<button class="btn btn-ghost" type="button" data-sheet="settle">להסדיר תשלום</button>`}
       </div>
     </section>
     <section class="pa-card" aria-labelledby="pay-h">

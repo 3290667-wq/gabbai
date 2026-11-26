@@ -1,4 +1,4 @@
-// «גבאי» — הדגמה חיה (26.11.2026, האקתון): כניסת הורים לכרטיס הילד, קישור תשלום, שיחה יוצאת מקו הטלפון של המוסד
+// «גבאי» — הדגמה חיה (26.11.2026, האקתון): כניסת הורים לכרטיס הילד, קישור תשלום, שיחה יוצאת מהקו של המוסד
 // (phonechat2 במצב gabbai), ותזכורת/קבלה בוואטסאפ ובמייל.
 // המצב נשמר בקובץ JSON אחד (DATA_DIR/gabbai-live.json) — זה דמו, לא ספר החשבונות.
 // בטיחות: מחייגים ושולחים רק למספרים שברשימת הדמו (DEMO_PHONES). וואטסאפ יוצא דרך הגשר, שמאפשר רק את המספר של עמיחי.
@@ -22,25 +22,27 @@ const WA_OK = new Set(['0500000001']); // הגשר שולח וואטסאפ רק 
 const normPhone = (p) => { let d = String(p || '').replace(/\D/g, ''); if (d.startsWith('972')) d = '0' + d.slice(3); return d; };
 const shekel = (n) => `₪${Math.round(n).toLocaleString('he-IL')}`;
 
+// מקור הנתונים: charges / receipts / so_returns / arrangements ב-data/demo.db (26.11.2026).
+// מיפוי חודשים אחיד לכל המערכת: חיוב 10.09 = תשרי, 10.10 = חשוון, 10.11 = כסלו, 10.12 = טבת. דמי רישום: ₪300.
 function seed() {
   return {
     v: 2,
-    fund: { goal: 18000, got: 14350, title: 'טיול שנתי לגן החיות התנ״כי', sharePct: 6 },
+    waReal: false, // וואטסאפ אמיתי כבוי כברירת מחדל — רק הטלפון המדומה. הפעלה ידנית מהטלפון המדומה בלבד.
+    fund: { goal: 3000, got: 2200, donations: true, title: 'מסיבת חנוכה עם סופגניות לכל הכיתות', sharePct: 6 },
     families: [
       {
         id: 'levi', family: 'לוי', parent: 'יעקב לוי', phone: '0500000001', email: '', code: '1234', monthly: 1450,
         kids: [
-          { n: 'מנחם', c: 'כיתה ג׳', teacher: 'הרב שלמה גרוס', icon: 'book-blue', att: 97, learn: 'מסכת ברכות — פרק ראשון', star: 'זכה ב«מתמיד השבוע» פעמיים החודש' },
+          { n: 'מנחם', c: 'כיתה ג׳', teacher: 'הרב שלמה גרוס', icon: 'book-blue', att: 97, learn: 'חומש ויקרא — פרשת צו', star: 'זכה ב«מתמיד השבוע» פעמיים החודש' },
           { n: 'שמואל', c: 'כיתה ה׳', teacher: 'הרב משה פרלשטיין', icon: 'book-green', att: 94, learn: 'חומש ויקרא עם רש״י', star: 'השתתף במבחן החודשי וקיבל «מצוין»' },
-          { n: 'יוסף', c: 'גן', teacher: 'הגננת מרים', icon: 'teddy', att: 99, learn: 'אותיות ונקודות — אות ק׳', star: 'הביא ממתק לכל הגן בחנוכה' },
+          { n: 'יוסף', c: 'גן', teacher: 'הגננת מרים', icon: 'teddy', att: 99, learn: 'אותיות ונקודות — אות ק׳', star: 'למד לברך «שהכל» בקול לפני כל ממתק בגן' },
         ],
         pays: [
-          { d: '01.09.2026', m: 'דמי רישום', s: 600, k: 'card', st: 'ok' },
-          { d: '10.09.2026', m: 'אלול', s: 1450, k: 'debit', st: 'ok' },
-          { d: '22.10.2026', m: 'תשרי', s: 1450, k: 'link', st: 'fix', note: 'הוראת הקבע חזרה ושולמה בקישור אחרי 3 תזכורות', late: 12, rem: 3 },
-          { d: '19.11.2026', m: 'חשון', s: 1450, k: 'card', st: 'ok', note: 'שולם באיחור אחרי 2 תזכורות', late: 9, rem: 2 },
+          { d: '24.09.2026', m: 'תשרי', s: 1450, k: 'transfer', st: 'fix', note: 'הוראת הקבע חזרה (אין כיסוי) — שולם בהעברה אחרי 2 תזכורות', late: 14, rem: 2 },
+          { d: '11.10.2026', m: 'חשוון', s: 1450, k: 'debit', st: 'ok' },
+          { d: '20.10.2026', m: 'דמי רישום', s: 300, k: 'transfer', st: 'ok', note: 'שולם באיחור', late: 40 },
         ],
-        returns: ['ההרשאה בוטלה'],
+        returns: ['אין כיסוי בחשבון'],
         debt: { amount: 1450, month: 'כסלו', reason: 'ההרשאה בוטלה', date: '25.11.2026' },
       },
       {
@@ -50,9 +52,10 @@ function seed() {
           { n: 'דוד', c: 'כיתה ז׳', teacher: 'הרב אליעזר בלוי', icon: 'book-green', att: 95, learn: 'גמרא — בבא מציעא', star: 'סיים את פרק אלו מציאות' },
         ],
         pays: [
-          { d: '10.09.2026', m: 'אלול', s: 980, k: 'debit', st: 'ok' },
-          { d: '10.10.2026', m: 'תשרי', s: 980, k: 'debit', st: 'ok' },
-          { d: '10.11.2026', m: 'חשון', s: 980, k: 'debit', st: 'ok' },
+          { d: '10.09.2026', m: 'דמי רישום', s: 300, k: 'debit', st: 'ok' },
+          { d: '10.09.2026', m: 'תשרי', s: 980, k: 'debit', st: 'ok' },
+          { d: '11.10.2026', m: 'חשוון', s: 980, k: 'debit', st: 'ok' },
+          { d: '10.11.2026', m: 'כסלו', s: 980, k: 'debit', st: 'ok' },
         ],
         debt: null,
       },
@@ -60,10 +63,12 @@ function seed() {
         id: 'friedman', family: 'פרידמן', parent: 'חיים פרידמן', phone: '0500000003', email: '', code: '3333', monthly: 650,
         kids: [{ n: 'ישראל', c: 'כיתה א׳', teacher: 'הרב נחום קליין', icon: 'book-blue', att: 90, learn: 'קריאה בסידור', star: 'קיבל סידור ראשון במסיבת הסידור' }],
         pays: [
-          { d: '10.09.2026', m: 'אלול', s: 650, k: 'card', st: 'ok' },
-          { d: '10.10.2026', m: 'תשרי', s: 650, k: 'card', st: 'ok' },
+          { d: '10.09.2026', m: 'תשרי', s: 650, k: 'debit', st: 'ok' },
+          { d: '05.10.2026', m: 'דמי רישום', s: 300, k: 'check', st: 'ok', note: 'חוב קטן שהוסדר — שולם בצ׳ק במזכירות', late: 25, rem: 1 },
+          { d: '11.10.2026', m: 'חשוון', s: 650, k: 'debit', st: 'ok' },
+          { d: '10.11.2026', m: 'כסלו', s: 650, k: 'debit', st: 'ok' },
         ],
-        debt: { amount: 1300, month: 'חשון וכסלו', reason: 'כרטיס האשראי פג תוקף', date: '20.11.2026' },
+        debt: null,
       },
       {
         id: 'weiss', family: 'וייס', parent: 'מרדכי וייס', phone: '0500000004', email: '', code: '4444', monthly: 1200,
@@ -72,13 +77,97 @@ function seed() {
           { n: 'אליהו', c: 'כיתה א׳', teacher: 'הרב נחום קליין', icon: 'book-blue', att: 93, learn: 'קריאה בסידור', star: 'עוזר לחברים בכיתה' },
         ],
         pays: [
-          { d: '10.09.2026', m: 'אלול', s: 1200, k: 'debit', st: 'ok' },
-          { d: '24.10.2026', m: 'תשרי', s: 1200, k: 'link', st: 'fix', note: 'חזר — אין כיסוי. שולם בפריסה ל-2', late: 14, rem: 1 },
-          { d: '10.11.2026', m: 'חשון', s: 1200, k: 'debit', st: 'ok' },
+          { d: '10.09.2026', m: 'דמי רישום', s: 300, k: 'debit', st: 'ok' },
+          { d: '10.09.2026', m: 'תשרי', s: 1200, k: 'debit', st: 'ok', note: 'שכר לימוד ₪1,100 + הסעות ₪100' },
+          { d: '11.10.2026', m: 'חשוון', s: 1200, k: 'debit', st: 'ok', note: 'שכר לימוד ₪1,100 + הסעות ₪100' },
         ],
-        returns: ['אין כיסוי בחשבון'],
+        plans: 1, // ביקש ב-25.11 לחייב שוב ב-1.12 ולפרוס לשלושה תשלומים (ממתין לאישור הגזבר)
+        debt: { amount: 1200, month: 'כסלו', reason: 'אין כיסוי בחשבון', date: '13.11.2026' },
+      },
+      {
+        id: 'shapira', family: 'שפירא', parent: 'שלמה שפירא', phone: '0500000105', email: '', code: '5555', monthly: 1900,
+        kids: [
+          { n: 'נפתלי', c: 'כיתה ח׳', teacher: 'הרב יהושע ברנר', icon: 'books', att: 95, learn: 'גמרא — מסכת קידושין', star: 'נבחר לחזן בתפילת שחרית של הכיתה' },
+          { n: 'אברהם', c: 'כיתה ו׳', teacher: 'הרב אהרן ליבוביץ', icon: 'book-green', att: 93, learn: 'משניות — מסכת ברכות', star: 'סיים את סדר המשניות של החודש' },
+          { n: 'יצחק', c: 'כיתה ג׳', teacher: 'הרב שלמה גרוס', icon: 'book-blue', att: 96, learn: 'חומש ויקרא — פרשת צו', star: 'קיבל תעודת הצטיינות בכתיבה' },
+          { n: 'בנימין', c: 'גן', teacher: 'הגננת מרים', icon: 'teddy', att: 91, learn: 'אותיות ונקודות — אות ל׳', star: 'שר יפה בסיום מסיבת הגן' },
+        ],
+        pays: [
+          { d: '10.11.2026', m: 'כסלו', s: 1900, k: 'debit', st: 'ok' },
+          { d: '15.11.2026', m: 'הסדר תשלומים — תשלום 1 מתוך 4', s: 1025, k: 'transfer', st: 'fix', note: 'על החוב של תשרי וחשוון ודמי הרישום', rem: 1 },
+        ],
+        returns: ['אין כיסוי בחשבון', 'אין כיסוי בחשבון'], // תשרי (15.09) וחשוון (14.10)
         plans: 1,
-        debt: { amount: 1200, month: 'כסלו', reason: 'אין כיסוי בחשבון', date: '25.11.2026' },
+        plan: { n: 4, each: 1025, from: '15.11.2026', paid: 1, at: '2026-10-28T10:10:00.000Z' },
+        debt: { amount: 3075, month: 'תשרי וחשוון', reason: 'אין כיסוי בחשבון — בהסדר תשלומים', date: '14.10.2026' },
+      },
+      {
+        id: 'goldberg', family: 'גולדברג', parent: 'יהודה גולדברג', phone: '0520000106', email: '', code: '6666', monthly: 1100,
+        kids: [
+          { n: 'משה', c: 'כיתה ה׳', teacher: 'הרב משה פרלשטיין', icon: 'book-green', att: 88, learn: 'חומש ויקרא עם רש״י', star: 'שאל שאלה יפה בשיעור והרב סיפר עליה לכיתה' },
+          { n: 'אריה', c: 'כיתה ב׳', teacher: 'הרב יחיאל שטרן', icon: 'lion', att: 90, learn: 'פרשת השבוע', star: 'עוזר לסדר את הסידורים אחרי התפילה' },
+        ],
+        pays: [],
+        contacts: 4,
+        debt: { amount: 3600, month: 'תשרי, חשוון וכסלו (כולל דמי רישום)', reason: 'לא התקבל תשלום מתחילת השנה', date: '10.11.2026' },
+      },
+      {
+        id: 'rosenthal', family: 'רוזנטל', parent: 'אליעזר רוזנטל', phone: '0540000107', email: '', code: '7777', monthly: 650,
+        kids: [
+          { n: 'צבי', c: 'כיתה ח׳', teacher: 'הרב יהושע ברנר', icon: 'books', att: 97, learn: 'גמרא — מסכת קידושין', star: 'חזר בעל פה על דף שלם בגמרא' },
+        ],
+        pays: [
+          { d: '10.09.2026', m: 'תשרי', s: 650, k: 'debit', st: 'ok' },
+          { d: '20.09.2026', m: 'דמי רישום', s: 300, k: 'transfer', st: 'ok', late: 10 },
+          { d: '11.10.2026', m: 'חשוון', s: 650, k: 'debit', st: 'ok' },
+          { d: '10.11.2026', m: 'כסלו', s: 650, k: 'debit', st: 'ok' },
+        ],
+        dispute: true,
+        debt: { amount: 300, month: 'תשרי, חשוון וכסלו — הסעות (3 × ₪100)', reason: 'ההורה טוען שהבן לא נוסע בהסעה — בבירור', date: '10.11.2026' },
+      },
+      {
+        id: 'berger', family: 'ברגר', parent: 'נתן ברגר', phone: '0530000108', email: '', code: '8888', monthly: 1450,
+        kids: [
+          { n: 'יעקב', c: 'כיתה ד׳', teacher: 'הרב שלמה גרוס', icon: 'book-green', att: 98, learn: 'משניות — מסכת שבת', star: 'זכה בחידון פרשת השבוע' },
+          { n: 'מאיר', c: 'כיתה א׳', teacher: 'הרב נחום קליין', icon: 'book-blue', att: 94, learn: 'קריאה בסידור', star: 'קרא לבד את ברכות השחר' },
+          { n: 'שמעון', c: 'גן', teacher: 'הגננת מרים', icon: 'teddy', att: 96, learn: 'אותיות ונקודות — אות ק׳', star: 'צייר ציור יפה לפרשת השבוע' },
+        ],
+        pays: [
+          { d: '10.09.2026', m: 'דמי רישום', s: 300, k: 'card', st: 'ok' },
+          { d: '10.09.2026', m: 'תשרי', s: 1450, k: 'card', st: 'ok' },
+          { d: '11.10.2026', m: 'חשוון', s: 1450, k: 'card', st: 'ok' },
+        ],
+        debt: { amount: 1450, month: 'כסלו', reason: 'כרטיס האשראי פג תוקף', date: '10.11.2026' },
+      },
+      {
+        id: 'klein', family: 'קליין', parent: 'דניאל קליין', phone: '0580000109', email: '', code: '9999', monthly: 1100, joined: '2026-08-25T08:00:00.000Z',
+        override: 'newbie', // הצטרפו באלול (25.8) — המזכירות סימנה «הורה חדש» לשנה הראשונה
+        kids: [
+          { n: 'חיים', c: 'כיתה ו׳', teacher: 'הרב אהרן ליבוביץ', icon: 'book-green', att: 95, learn: 'משניות — מסכת ברכות', star: 'השתלב יפה בכיתה כבר בשבוע הראשון' },
+          { n: 'זאב', c: 'כיתה ג׳', teacher: 'הרב שלמה גרוס', icon: 'book-blue', att: 93, learn: 'חומש ויקרא — פרשת צו', star: 'מצא חברים חדשים ומשחק איתם בהפסקה' },
+        ],
+        pays: [
+          { d: '25.08.2026', m: 'דמי רישום', s: 300, k: 'card', st: 'ok', note: 'ביום ההרשמה' },
+          { d: '08.09.2026', m: 'תשרי', s: 1100, k: 'transfer', st: 'ok', note: 'בהעברה — הוראת הקבע עוד לא הוקמה' },
+          { d: '11.10.2026', m: 'חשוון', s: 1100, k: 'debit', st: 'ok' },
+          { d: '10.11.2026', m: 'כסלו', s: 1100, k: 'debit', st: 'ok' },
+        ],
+        debt: null,
+      },
+      {
+        id: 'adler', family: 'אדלר', parent: 'ברוך אדלר', phone: '0500000110', email: '', code: '0000', monthly: 1450,
+        kids: [
+          { n: 'אלחנן', c: 'כיתה ז׳', teacher: 'הרב אליעזר בלוי', icon: 'books', att: 99, learn: 'גמרא — בבא מציעא', star: 'סיים את פרק אלו מציאות' },
+          { n: 'שלום', c: 'כיתה ה׳', teacher: 'הרב משה פרלשטיין', icon: 'book-green', att: 97, learn: 'חומש ויקרא עם רש״י', star: 'קיבל «מצוין» במבחן החודשי' },
+          { n: 'ישעיהו', c: 'כיתה ב׳', teacher: 'הרב יחיאל שטרן', icon: 'book-blue', att: 95, learn: 'פרשת השבוע', star: 'קורא בקול נעים בתפילה' },
+        ],
+        pays: [
+          { d: '10.09.2026', m: 'דמי רישום', s: 300, k: 'debit', st: 'ok' },
+          { d: '10.09.2026', m: 'תשרי', s: 1450, k: 'debit', st: 'ok' },
+          { d: '11.10.2026', m: 'חשוון', s: 1450, k: 'debit', st: 'ok' },
+          { d: '10.11.2026', m: 'כסלו', s: 1450, k: 'debit', st: 'ok' },
+        ],
+        debt: null,
       },
     ],
     links: {},   // token → {fam, amount, n, of, created, paid_at}
@@ -131,12 +220,17 @@ module.exports = (ctx) => {
   const cookie = (tok, age) => `gbp=${tok ? encodeURIComponent(tok) : ''}; Path=${BP}; HttpOnly; SameSite=Lax${process.env.COOKIE_INSECURE ? '' : '; Secure'}; Max-Age=${age}`;
 
   const openLink = (f) => Object.entries(S.links).find(([, l]) => l.fam === f.id && !l.paid_at);
-  const view = (f) => {
+  const view = (f, ensureLink) => {
     const paid = f.pays.filter((p) => p.st !== 'wait').reduce((s, p) => s + p.s, 0);
+    const onTime = f.pays.filter((p) => p.st === 'ok' && !(+p.late > 0)).reduce((s, p) => s + p.s, 0); // הקרן מקבלת רק מתשלום בזמן
+    // הורה עם חוב פתוח שנכנס לאזור ההורים — מקבל קישור תשלום (חוץ מבירור חיוב פתוח)
+    if (ensureLink && f.debt && !f.dispute && !openLink(f)) {
+      if (f.plan && f.plan.paid < f.plan.n) newLink(f, Math.min(f.plan.each, f.debt.amount), { n: f.plan.paid + 1, of: f.plan.n }); else newLink(f, f.debt.amount);
+    }
     const link = openLink(f);
     return {
       inst: INST, family: f.family, parent: f.parent, monthly: f.monthly, kids: f.kids, pays: f.pays,
-      debt: f.debt, plan: f.plan || null, paid, mine: Math.round(paid * S.fund.sharePct / 100), fund: S.fund,
+      debt: f.debt, plan: f.plan || null, paid, mine: Math.round(onTime * S.fund.sharePct / 100), fund: S.fund,
       pay_url: link ? `${PUB}/pay/?t=${link[0]}` : null, nextCharge: '10.12.2026',
     };
   };
@@ -147,13 +241,13 @@ module.exports = (ctx) => {
     const f = famByPhone(body.phone);
     if (!f || String(body.code || '').trim() !== f.code) { loginTries.set(ip, [...t, Date.now()]); throw new C.HttpError(401, 'הטלפון או קוד ההורה לא נכונים'); }
     ev(f, 'login', `הורי משפחת ${f.family} נכנסו לאזור ההורים`);
-    return { $cookie: cookie(sign(f.id), 12 * 3600), ok: true, data: view(f) };
+    return { $cookie: cookie(sign(f.id), 12 * 3600), ok: true, data: view(f, true) };
   }, { public: true });
   r.post('/api/public/parent/logout', () => ({ $cookie: cookie('', 0), ok: true }), { public: true });
   r.get('/api/public/parent/me', ({ req }) => {
     const f = parentOf(req);
     if (!f) return { user: null, demo: S.families.filter((x) => x.via !== 'join').map((x) => ({ family: x.family, phone: x.phone.replace(/^(\d{3})/, '$1-'), code: x.code })) };
-    return { user: f.id, data: view(f) };
+    return { user: f.id, data: view(f, true) };
   }, { public: true });
 
   // ---------- payment link
@@ -254,7 +348,7 @@ module.exports = (ctx) => {
     const kids = f.kids.map((k) => `${k.n} (${k.c})`).join(', ');
     const missing = S.fund.goal - S.fund.got;
     const state = f.debt
-      ? `החוב הפתוח: ${f.debt.amount} שקלים — הוראת הקבע לחודש ${f.debt.month} חזרה ב-${f.debt.date}, סיבה: ${f.debt.reason}.`
+      ? `החוב הפתוח: ${f.debt.amount} שקלים — החיוב של ${f.debt.month} פתוח מאז ${f.debt.date}, סיבה: ${f.debt.reason}.`
       : 'אין חוב פתוח — החשבון מסודר. אם הוא שואל — הודה לו ואמור שהכול בסדר.';
     const plan = f.plan ? ` כבר סוכם הסדר: ${f.plan.n} תשלומים של ${f.plan.each} שקלים, מתאריך ${f.plan.from}.` : '';
     const link = openLink(f) ? ' כבר נשלח אליו קישור תשלום שעוד לא שולם.' : '';
@@ -333,7 +427,7 @@ module.exports = (ctx) => {
     if (!DEMO_PHONES[f.phone]) throw C.bad('המספר הזה לא ברשימת ההדגמה');
     if (Date.now() - (lastCall.get(f.phone) || 0) < 45e3) throw C.bad('כבר חייגנו למספר הזה לפני פחות מדקה — רגע');
     lastCall.set(f.phone, Date.now());
-    ev(f, 'dial', `מחייג מקו הטלפון של המוסד (03-0000000) להורי משפחת ${f.family} — ${DEMO_PHONES[f.phone]}`);
+    ev(f, 'dial', `מחייג מהקו של ${INST} (03-0000000) להורי משפחת ${f.family} — ${DEMO_PHONES[f.phone]}`);
     const out = await new Promise((resolve) => execFile('bash', [path.join(HOME, 'phonechat2', 'call2.sh'), f.phone, 'gabbai'], { timeout: 30000, env: { HOME, PATH: process.env.PATH, LANG: 'C.UTF-8' } },
       (err, so, se) => resolve({ err, so: String(so || ''), se: String(se || '') })));
     const line = out.so.trim().split('\n').pop() || '';

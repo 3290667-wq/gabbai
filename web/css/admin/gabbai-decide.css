@@ -1,0 +1,56 @@
+/* «למה גבאי החליט ככה» — web/admin/gabbai-decide.js. רק משתני --gb-* של חדר הגבייה (יום ולילה). */
+.gbd-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .gbd-grid { grid-template-columns: 1fr; } }
+.gbd-col { display: grid; gap: 10px; min-width: 0; }
+.gbd-ico { width: 40px; height: 40px; object-fit: contain; flex: none; }
+
+.gbd-card { display: grid; gap: 12px; padding: 14px; border-radius: 14px; min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--gb-text) 10%, transparent); border-top: 3px solid var(--gb-gold, #c9a24a);
+  background: color-mix(in srgb, var(--gb-gold, #c9a24a) 5%, transparent); }
+.gbd-card__head { display: flex; gap: 12px; align-items: center; }
+.gbd-card__head small { color: var(--gb-muted); font-size: 13px; }
+.gbd-card__head h3 { font-size: 18px; font-weight: 800; margin: 2px 0 0; }
+
+.gbd-prob { display: grid; gap: 6px; }
+.gbd-prob__top { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; color: var(--gb-muted); }
+.gbd-prob__top b { font-size: 18px; color: var(--gb-ok); }
+.gbd-prob.is-none { margin: 0; font-size: 13.5px; color: var(--gb-muted); }
+.gbd-bar { height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--gb-text) 10%, transparent); overflow: hidden; }
+.gbd-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gb-warn), var(--gb-ok)); transition: width .5s ease; }
+
+.gbd-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 14px; line-height: 1.55; }
+.gbd-dl dt { font-weight: 700; color: var(--gb-muted); }
+.gbd-dl dd { margin: 0; }
+@media (max-width: 480px) { .gbd-dl { grid-template-columns: 1fr; } .gbd-dl dd { margin-bottom: 4px; } }
+.gbd-why { font-size: 13.5px; line-height: 1.5; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--gb-text) 5%, transparent); }
+.gbd-dir summary { cursor: pointer; font-size: 13.5px; color: var(--gb-muted); min-height: 32px; display: flex; align-items: center; }
+.gbd-dir p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--gb-muted); }
+
+.gbd-try { display: grid; gap: 8px; }
+.gbd-try__row { display: flex; gap: 8px; }
+.gbd-try__in { flex: 1; min-width: 0; font: inherit; font-size: 16px; min-height: 44px; padding: 0 12px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gb-text) 18%, transparent); background: color-mix(in srgb, var(--gb-text) 4%, transparent); color: inherit; }
+.gbd-try__b { font: inherit; font-weight: 700; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 0; cursor: pointer; white-space: nowrap;
+  background: var(--gb-navy, #1d2b52); color: #fff; }
+.gbd-try__b:disabled { opacity: .6; }
+@media (max-width: 480px) { .gbd-try__row { flex-direction: column; } }
+.gbd-try__res { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.55;
+  background: color-mix(in srgb, var(--gb-live) 8%, transparent); border: 1px solid color-mix(in srgb, var(--gb-live) 30%, transparent); }
+.gbd-try__res.is-fast { background: color-mix(in srgb, var(--gb-ok) 8%, transparent); border-color: color-mix(in srgb, var(--gb-ok) 35%, transparent); }
+
+.gbd-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gbd-stat { display: grid; gap: 2px; padding: 10px; border-radius: 12px; text-align: center; background: color-mix(in srgb, var(--gb-text) 5%, transparent); }
+.gbd-stat b { font-size: 20px; }
+.gbd-stat small { font-size: 12px; color: var(--gb-muted); }
+.gbd-stat.is-fast b { color: var(--gb-ok); }
+
+.gbd-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 460px; overflow-y: auto; }
+.gbd-log__empty { font-size: 14px; color: var(--gb-muted); padding: 10px 0; }
+.gbd-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px;
+  background: color-mix(in srgb, var(--gb-text) 4%, transparent); font-size: 13.5px; }
+.gbd-row__path { font-size: 11.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--gb-live); }
+.gbd-row.is-fast .gbd-row__path { background: var(--gb-ok); }
+.gbd-row__tx { min-width: 0; overflow-wrap: anywhere; line-height: 1.45; }
+.gbd-row__tx small { display: block; color: var(--gb-muted); font-size: 12px; }
+.gbd-row__meta { display: grid; justify-items: end; gap: 1px; font-size: 12px; color: var(--gb-muted); }
+.gbd-paid { font-style: normal; font-weight: 700; color: var(--gb-ok); }
