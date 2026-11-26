@@ -1,0 +1,53 @@
+/* «סוגי הורים» — web/admin/gabbai-persona.js. משתמש רק במשתני --gb-* של חדר הגבייה, כך שעובד במצב יום ובמצב לילה. */
+.gbp-ico { width: 22px; height: 22px; object-fit: contain; flex: none; }
+.gbp-ico--lg { width: 40px; height: 40px; }
+.gbp-sel { font: inherit; font-size: 14px; min-height: 36px; padding: 0 8px; border-radius: 10px; max-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--gb-text) 18%, transparent); background: color-mix(in srgb, var(--gb-text) 4%, transparent); color: inherit; }
+.gbp-sel--lg { font-size: 16px; min-height: 42px; }
+@media (max-width: 640px) { .gbp-sel { font-size: 16px; min-height: 40px; } }
+
+/* badge in the family card */
+.gbp-badge { display: grid; gap: 4px; margin-top: 6px; padding: 8px 10px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--gbp-c) 40%, transparent);
+  background: color-mix(in srgb, var(--gbp-c) 9%, transparent); --gbp-c: var(--gb-live); }
+.gbp-badge.is-warn, .gbp-card.is-warn { --gbp-c: var(--gb-warn); }
+.gbp-badge.is-ok, .gbp-card.is-ok { --gbp-c: var(--gb-ok); }
+.gbp-badge.is-bad, .gbp-card.is-bad { --gbp-c: #d0533f; }
+.gbp-badge.is-info, .gbp-card.is-info { --gbp-c: var(--gb-live); }
+.gbp-badge__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gbp-badge__top b { color: var(--gbp-c); font-size: 15px; }
+.gbp-badge__top .gbp-sel { margin-inline-start: auto; }
+.gbp-tag { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--gbp-c); color: #fff; }
+.gbp-why { font-size: 12.5px; color: var(--gb-muted); line-height: 1.45; }
+
+/* panel */
+.gbp-lead { margin: 4px 0 14px; color: var(--gb-muted); font-size: 14.5px; line-height: 1.6; max-width: 90ch; }
+.gbp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.gbp-card { --gbp-c: var(--gb-live); display: grid; grid-template-rows: auto 1fr auto; gap: 8px; padding: 12px; border-radius: 14px; min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--gb-text) 10%, transparent); border-top: 3px solid var(--gbp-c);
+  background: color-mix(in srgb, var(--gbp-c) 5%, transparent); }
+.gbp-card.has-fam { box-shadow: 0 0 0 1px color-mix(in srgb, var(--gbp-c) 45%, transparent); }
+.gbp-card header { display: flex; gap: 10px; align-items: flex-start; }
+.gbp-card h3 { font-size: 16px; color: var(--gbp-c); }
+.gbp-card header p { margin: 2px 0 0; font-size: 13px; color: var(--gb-muted); line-height: 1.45; }
+.gbp-card dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; font-size: 13px; line-height: 1.5; }
+.gbp-card dt { font-weight: 700; color: var(--gb-gold); white-space: nowrap; }
+.gbp-card dd { margin: 0; }
+.gbp-card footer { font-size: 12.5px; font-weight: 700; color: var(--gbp-c); padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--gb-text) 14%, transparent); }
+.gbp-card:not(.has-fam) footer { color: var(--gb-muted); font-weight: 400; }
+
+.gbp-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.gbp-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.gbp-tab { font: inherit; font-size: 14px; min-height: 40px; padding: 0 12px; border-radius: 999px; cursor: pointer; color: inherit;
+  border: 1px solid color-mix(in srgb, var(--gb-text) 16%, transparent); background: transparent; }
+.gbp-tab.is-own { border-color: var(--gb-gold); }
+.gbp-tab.is-own::after { content: ' ●'; color: var(--gb-gold); font-size: 10px; }
+.gbp-tab.is-on { background: var(--gb-gold); border-color: var(--gb-gold); color: #fff; font-weight: 700; }
+.gbp-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 1100px) { .gbp-out { grid-template-columns: 1fr; } }
+.gbp-msg h4 { margin: 0 0 6px; font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--gb-gold); }
+.gbp-bubble, .gbp-mail, .gbp-phone { font-size: 14px; line-height: 1.6; border-radius: 14px; padding: 10px 12px; overflow-wrap: anywhere; margin: 0; }
+.gbp-bubble span, .gbp-mail span { display: block; min-height: 0.8em; }
+.gbp-bubble { background: color-mix(in srgb, #25d366 12%, transparent); border: 1px solid color-mix(in srgb, #25d366 30%, transparent); border-start-start-radius: 4px; }
+.gbp-mail { background: color-mix(in srgb, var(--gb-text) 4%, transparent); border: 1px solid color-mix(in srgb, var(--gb-text) 12%, transparent); }
+.gbp-mail > b { display: block; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid color-mix(in srgb, var(--gb-text) 12%, transparent); }
+.gbp-phone { background: color-mix(in srgb, var(--gb-gold) 9%, transparent); border: 1px solid color-mix(in srgb, var(--gb-gold) 30%, transparent); }

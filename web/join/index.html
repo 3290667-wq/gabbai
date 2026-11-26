@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#fbfaf6">
+  <meta name="format-detection" content="telephone=no">
+  <title>הצטרפות לקבוצת ההורים — תלמוד תורה "אור התורה"</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../parent/parent.css">
+  <link rel="stylesheet" href="join.css">
+  <script type="module" src="join.js"></script>
+</head>
+<body>
+  <main class="pa jn" id="jn">
+    <header class="pa-top">
+      <div class="pa-crest" aria-hidden="true"><img class="gi" src="../assets/icons/chat.webp" alt=""></div>
+      <div class="pa-inst"><b>תלמוד תורה «אור התורה»</b><span>קבוצת ההורים בוואטסאפ</span></div>
+    </header>
+    <section class="pa-card jn-hero">
+      <h1>הצטרפות לקבוצת ההורים</h1>
+      <p>נרשמים פעם אחת, מצטרפים לקבוצה — ו«גבאי», העוזר הדיגיטלי של המוסד, יזהה אתכם ויענה לכם שם באופן אישי: על הילדים, על התשלומים ועל קרן הפינוקים.</p>
+      <ul class="jn-steps">
+        <li><span class="jn-n">1</span>ממלאים פרטים</li>
+        <li><span class="jn-n">2</span>מצטרפים לקבוצה</li>
+        <li><span class="jn-n">3</span>«גבאי» מברך אתכם בשם</li>
+      </ul>
+    </section>
+    <section class="pa-card" id="formCard">
+      <form id="f" novalidate>
+        <label class="pa-field">שם ההורה (פרטי ומשפחה)<input name="parent" autocomplete="name" required maxlength="40" placeholder="למשל: משה כהן"></label>
+        <label class="pa-field">טלפון נייד — זה שאיתו תצטרפו לקבוצה<input name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="050-1234567" dir="ltr"></label>
+        <fieldset class="jn-kids">
+          <legend>הילדים במוסד</legend>
+          <div id="kids"></div>
+          <button type="button" class="jn-add" id="addKid">+ עוד ילד</button>
+        </fieldset>
+        <p class="pa-err" id="err" role="alert" hidden></p>
+        <button class="btn btn-gold jn-go" type="submit">נרשמים ומצטרפים לקבוצה</button>
+        <p class="jn-fine">הדגמה בלבד. הפרטים משמשים רק את בוט המוסד בהדגמה.</p>
+      </form>
+    </section>
+    <section class="pa-card jn-done" id="done" hidden></section>
+    <footer class="pa-foot">תלמוד תורה «אור התורה» · מופעל ע״י «גבאי» · דף הדגמה</footer>
+  </main>
+</body>
+</html>

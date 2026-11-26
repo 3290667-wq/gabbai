@@ -1,0 +1,12 @@
+.pay { max-width: 560px; }
+.pay-sum { text-align: center; padding: 22px 18px; }
+.pay-sum .amt { font-size: clamp(40px, 12vw, 56px); font-weight: 800; color: var(--gold); line-height: 1.1; margin: 6px 0; }
+.pay-sum small { color: var(--muted); display: block; }
+.pay-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.pay-card input { direction: ltr; text-align: right; }
+.pay-safe { display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; margin-top: 10px; }
+.pay-ok { text-align: center; }
+.pay-ok .gi--big { width: 88px; height: 88px; }
+.pay-ok h1 { font-size: 30px; margin: 8px 0; color: var(--ok); }
+.pay-ok .pa-bar { margin: 14px 0 6px; }
+.pay .btn { width: 100%; }
