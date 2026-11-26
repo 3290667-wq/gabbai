@@ -57,45 +57,74 @@ export function phoneSim(timers) {
 
   sheet.hidden = true; joinBox.hidden = true; // kit.h drops empty-string attributes, so «hidden: ''» alone is not enough
   const fam = () => st.fams.find((f) => f.id === st.fam);
+  // ציור בלי קפיצות (26.11): הפולינג רץ כל 1.5 ש׳, אז לא בונים מחדש כלום שלא השתנה — כל בועה נוצרת פעם אחת
+  // (האנימציה רצה רק להודעה חדשה), הצ׳יפים רק בהחלפת צ׳אט, והכותרת/הרשימה רק כשהטקסט שונה.
+  const nodes = new Map(); // msg id → li
+  const typingLi = h('li', { class: 'gwa-m is-in gwa-typing', 'aria-label': 'גבאי מקליד' }, h('i'), h('i'), h('i'));
+  const emptyLi = h('li', { class: 'gwa-empty' });
+  let chipsFor = '', joinFor = '', famsSig = '', msgsSig = '', painted = '';
+  const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
   function paintHead() {
     const f = fam();
-    if (st.chat === 'dm') { title.textContent = 'גבאי · תלמוד תורה «אור התורה»'; sub.textContent = st.typing.includes('dm') ? 'מקליד…' : 'עוזר דיגיטלי · מחובר/ת'; avatar.textContent = 'ג'; }
-    else { title.textContent = st.group || 'קבוצת ההורים'; sub.textContent = st.typing.includes('group') ? 'גבאי מקליד…' : `גבאי, ${f ? f.parent : 'את/ה'} ועוד הורים`; avatar.textContent = '👥'; }
+    if (st.chat === 'dm') { setText(title, 'גבאי · תלמוד תורה «אור התורה»'); setText(sub, st.typing.includes('dm') ? 'מקליד…' : 'עוזר דיגיטלי · מחובר/ת'); setText(avatar, 'ג'); }
+    else { setText(title, st.group || 'קבוצת ההורים'); setText(sub, st.typing.includes('group') ? 'גבאי מקליד…' : `גבאי, ${f ? f.parent : 'את/ה'} ועוד הורים`); setText(avatar, '👥'); }
     tabDm.setAttribute('aria-selected', String(st.chat === 'dm')); tabGr.setAttribute('aria-selected', String(st.chat === 'group'));
-    realBtn.textContent = st.waReal ? 'וואטסאפ אמיתי: פעיל' : 'וואטסאפ אמיתי: כבוי';
+    setText(realBtn, st.waReal ? 'וואטסאפ אמיתי: פעיל' : 'וואטסאפ אמיתי: כבוי');
     realBtn.setAttribute('aria-pressed', String(st.waReal)); realBtn.classList.toggle('is-off', !st.waReal);
-    quick.replaceChildren(...QUICK[st.chat].map((q) => { const b = h('button', { type: 'button', class: 'gwa-chip' }, q); b.addEventListener('click', () => send(q)); return b; }));
+    if (chipsFor !== st.chat) {
+      chipsFor = st.chat; quick.scrollLeft = 0;
+      quick.replaceChildren(...QUICK[st.chat].map((q) => { const b = h('button', { type: 'button', class: 'gwa-chip' }, q); b.addEventListener('click', () => send(q)); return b; }));
+    }
+  }
+  function bubble(m, fresh) {
+    let li = nodes.get(m.id);
+    if (!li) {
+      li = h('li', { class: `gwa-m ${m.from === 'parent' ? 'is-out' : 'is-in'}${fresh ? ' is-new' : ''}` },
+        m.chat === 'group' && m.from !== 'parent' ? h('span', { class: 'gwa-m__who' }, 'גבאי') : null,
+        h('span', { class: 'gwa-m__t' }, ...rich(m.text)),
+        h('span', { class: 'gwa-m__meta' }, hm(m.at), m.from === 'parent' ? h('span', { class: 'gwa-ticks', 'aria-label': 'נקרא' }, '✓✓') : null));
+      nodes.set(m.id, li);
+    }
+    return li;
   }
   function paintMsgs() {
-    const near = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
     const ms = st.msgs.filter((m) => m.chat === st.chat);
-    const items = ms.map((m) => h('li', { class: `gwa-m ${m.from === 'parent' ? 'is-out' : 'is-in'}` },
-      st.chat === 'group' && m.from !== 'parent' ? h('span', { class: 'gwa-m__who' }, 'גבאי') : null,
-      h('span', { class: 'gwa-m__t' }, ...rich(m.text)),
-      h('span', { class: 'gwa-m__meta' }, hm(m.at), m.from === 'parent' ? h('span', { class: 'gwa-ticks', 'aria-label': 'נקרא' }, '✓✓') : null)));
-    if (!ms.length && !(st.chat === 'group' && !st.joined)) items.push(h('li', { class: 'gwa-empty' }, st.chat === 'dm' ? 'עוד אין הודעות. לחצו «וואטסאפ» בכרטיס המשפחה, או כתבו כאן בשם ההורה.' : 'כתבו בקבוצה בשם ההורה.'));
-    if (st.typing.includes(st.chat)) items.push(h('li', { class: 'gwa-m is-in gwa-typing', 'aria-label': 'גבאי מקליד' }, h('i'), h('i'), h('i')));
-    list.replaceChildren(...items);
     const locked = st.chat === 'group' && !st.joined;
+    const typing = st.typing.includes(st.chat);
+    const view = `${st.fam}|${st.chat}`;
+    const sig = `${view}|${ms.length}|${ms.length ? ms[ms.length - 1].id : 0}|${typing}|${locked}`;
+    if (sig !== msgsSig) {
+      const first = painted !== view; // צ׳אט שנפתח עכשיו — בלי אנימציה לכל ההיסטוריה
+      const near = first || list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+      const items = ms.map((m) => bubble(m, !first));
+      if (!ms.length && !locked) { setText(emptyLi, st.chat === 'dm' ? 'עוד אין הודעות. לחצו «וואטסאפ» בכרטיס המשפחה, או כתבו כאן בשם ההורה.' : 'כתבו בקבוצה בשם ההורה.'); items.push(emptyLi); }
+      if (typing) items.push(typingLi);
+      const cur = [...list.children];
+      if (cur.length !== items.length || cur.some((n, i) => n !== items[i])) list.replaceChildren(...items);
+      if (near) list.scrollTop = list.scrollHeight;
+      msgsSig = sig; painted = view;
+    }
     joinBox.hidden = !locked; input.disabled = locked; sendBtn.disabled = locked;
-    if (locked) {
+    const jf = locked ? `${st.fam}|${st.group}` : '';
+    if (locked && jf !== joinFor) {
       const b = h('button', { type: 'button', class: 'gwa-joinbtn' }, 'הצטרפות לקבוצה');
       b.addEventListener('click', () => act(() => api.post('/api/gabbai/sim/join', { fam: st.fam })));
       joinBox.replaceChildren(h('div', { class: 'gwa-invite' }, h('span', { class: 'gwa-av is-big', 'aria-hidden': 'true' }, '👥'), h('b', null, st.group || 'קבוצת ההורים'),
         h('small', null, 'קבוצת וואטסאפ · הזמנה מהמוסד'), b));
     }
-    if (near || items.length < 4) list.scrollTop = list.scrollHeight;
+    joinFor = jf;
   }
   function paintFams() {
-    const cur = famSel.value;
-    if (famSel.options.length !== st.fams.length || cur !== st.fam) {
+    const sig = st.fams.map((f) => `${f.id}:${f.family}:${f.parent}:${f.debt || 0}`).join('|');
+    if (sig !== famsSig && document.activeElement !== famSel) {
+      famsSig = sig;
       famSel.replaceChildren(...st.fams.map((f) => h('option', { value: f.id }, `משפחת ${f.family} · ${f.parent}${f.debt ? ` · פתוח ₪${f.debt.toLocaleString('he-IL')}` : ''}`)));
     }
-    famSel.value = st.fam;
+    if (famSel.value !== st.fam) famSel.value = st.fam;
   }
   async function poll(reset) {
     if (!st.open) return;
-    if (reset) { st.seq = 0; st.msgs = []; }
+    if (reset) { st.seq = 0; st.msgs = []; nodes.clear(); msgsSig = ''; painted = ''; }
     try {
       const j = await api.get('/api/gabbai/sim', { fam: st.fam, after: st.seq }, { quiet: true });
       st.fams = j.families; st.waReal = j.waReal; st.typing = j.typing; st.joined = j.joined; st.group = j.group;
@@ -128,7 +157,7 @@ export function phoneSim(timers) {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   input.addEventListener('input', () => { input.style.height = ''; input.style.height = `${Math.min(110, input.scrollHeight)}px`; });
   realBtn.addEventListener('click', () => act(() => api.post('/api/gabbai/sim/real', { on: !st.waReal })));
-  clearBtn.addEventListener('click', () => { if (confirm('לנקות את הצ׳אטים של המשפחה הזאת בטלפון המדומה?')) act(async () => { await api.post('/api/gabbai/sim/clear', { fam: st.fam }); st.seq = 0; st.msgs = []; }); });
+  clearBtn.addEventListener('click', () => { if (confirm('לנקות את הצ׳אטים של המשפחה הזאת בטלפון המדומה?')) act(async () => { await api.post('/api/gabbai/sim/clear', { fam: st.fam }); st.seq = 0; st.msgs = []; nodes.clear(); msgsSig = ''; painted = ''; joinFor = ''; }); });
 
   const tick = () => { clock.textContent = new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jerusalem' }).format(new Date()); };
   tick();

@@ -48,7 +48,8 @@
   background-color: var(--wa-wall); background-image: radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1.4px); background-size: 18px 18px; }
 .gwa-msgs { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 12px 10px 8px; list-style: none; display: flex; flex-direction: column; gap: 6px; overscroll-behavior: contain; }
 .gwa-m { position: relative; max-width: 84%; padding: 6px 9px 18px; border-radius: 10px; font-size: 14.5px; line-height: 1.42; white-space: pre-wrap; overflow-wrap: anywhere;
-  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); animation: gwa-pop 0.18s ease-out; }
+  box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); }
+.gwa-m.is-new { animation: gwa-pop 0.18s ease-out; }
 @keyframes gwa-pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 /* RTL: incoming on the right (start), outgoing (ההורה) on the left (end) */
 .gwa-m.is-in { align-self: flex-start; background: var(--wa-in); border-start-start-radius: 2px; }
@@ -95,4 +96,4 @@
   .gwa-fab { font-size: 14px; }
 }
 html.gwa-lock, html.gwa-lock body { overflow: hidden; }
-@media (prefers-reduced-motion: reduce) { .gwa-sheet, .gwa-m, .gwa-typing i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .gwa-sheet, .gwa-m.is-new, .gwa-typing i { animation: none; } }

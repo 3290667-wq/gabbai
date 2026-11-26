@@ -1,0 +1,106 @@
+/* «גבאי» — ערכת עיצוב «כחול לילה וזהב» (עמיחי 26.11.2026, לפי צילום הרפרנס):
+   תפריט צד כחול כהה עם גלולת זהב לעמוד הנוכחי, קנבס אפור־קריר בהיר, כרטיסים לבנים מעוגלים עם צל רך,
+   כותרות בסן־סריף מודגש. נטען אחרון ב-index.html ודורס רק טוקנים ומסגרת. */
+
+:root {
+  --gt-navy: #0f2238;
+  --gt-navy-2: #0a192b;
+  --gt-navy-3: #17304d;
+  --gt-gold: #c9a35a;
+  --gt-gold-2: #a8843f;
+  --gt-gold-ink: #8a6629;
+
+  --mz-bg: #f3f5f8;
+  --mz-surface: #ffffff;
+  --mz-surface-2: #eef1f5;
+  --mz-surface-raised: #ffffff;
+  --mz-surface-hover: #f1f4f8;
+  --mz-surface-selected: #f6efe1;
+  --mz-border: rgba(15, 34, 56, 0.10);
+  --mz-border-strong: rgba(15, 34, 56, 0.24);
+  --mz-border-ink: #0f2238;
+  --mz-text: #13233a;
+  --mz-text-2: #3d4b5e;
+  --mz-text-3: #5b687a;
+  --mz-primary: #0f2238;
+  --mz-primary-hover: #1b3555;
+  --mz-accent: #8a6629;
+  --mz-accent-hover: #74551f;
+  --mz-accent-strong: #6e5120;
+  --mz-accent-soft: #f6efe1;
+  --mz-frame: #ffffff;
+  --mz-frame-2: #f3f5f8;
+  --mz-frame-3: #e8ecf2;
+  --mz-frame-line: rgba(15, 34, 56, 0.10);
+  --mz-frame-text: #13233a;
+  --mz-frame-text-2: #3d4b5e;
+  --mz-frame-text-3: #5b687a;
+  --mz-font-display: var(--mz-font-sans);
+  --mz-radius-lg: 16px;
+  --mz-radius-xl: 22px;
+  --mz-shadow-1: 0 1px 2px rgba(15, 34, 56, 0.05), 0 1px 1px rgba(15, 34, 56, 0.03);
+  --mz-shadow-2: 0 2px 6px rgba(15, 34, 56, 0.05), 0 12px 28px -12px rgba(15, 34, 56, 0.14);
+}
+
+/* ---------------------------------------------------------------- סימן המותג: זריחה זהובה מעל גבעות, על כחול לילה («אור התורה») */
+.mz-brand__mark, .adm-mbar__mark, .adm-login__mark {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23e6c77f'/%3E%3Cstop offset='1' stop-color='%23a8843f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' rx='11' fill='%2317304d'/%3E%3Ccircle cx='20' cy='23' r='7' fill='url(%23g)'/%3E%3Cpath d='M20 9v3M9.5 13.5l2 2M30.5 13.5l-2 2M6 23h3M31 23h3' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M4 30c6-5 11-6 16-3 5-3 10-2 16 3v6H4z' fill='%230a192b'/%3E%3Cpath d='M4 30c6-5 11-6 16-3 5-3 10-2 16 3' fill='none' stroke='url(%23g)' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  border-radius: 10px;
+}
+
+/* ---------------------------------------------------------------- סרגל עליון: לבן, והפינה של התפריט ממשיכה את הכחול עד למעלה */
+.mz-topbar { background: #fff; border-bottom: 1px solid var(--mz-border); box-shadow: 0 1px 0 rgba(15, 34, 56, 0.02); }
+@media (min-width: 1100px) {
+  .mz-topbar::before {
+    content: ''; position: absolute; inset-block: 0 -1px; inset-inline-start: 0; width: var(--mz-sidebar-w, 248px); z-index: 0;
+    background: var(--gt-navy);
+  }
+  .mz-topbar > * { position: relative; z-index: 1; }
+  .mz-brand { color: #fff; }
+  .mz-brand__sub { color: #9fb0c6; border-inline-start-color: rgba(255, 255, 255, 0.14); }
+}
+.adm-gsearch__input.mz-input { background: var(--mz-bg); border-color: transparent; border-radius: 999px; }
+.adm-gsearch__input.mz-input:focus { background: #fff; border-color: var(--gt-gold); box-shadow: 0 0 0 3px rgba(201, 163, 90, 0.22); }
+
+/* ---------------------------------------------------------------- תפריט הצד: כחול לילה, גלולת זהב */
+.adm-nav {
+  --mz-frame: var(--gt-navy); --mz-frame-2: rgba(255, 255, 255, 0.06); --mz-frame-3: rgba(255, 255, 255, 0.10);
+  --mz-frame-line: rgba(255, 255, 255, 0.08); --mz-frame-text: #ffffff; --mz-frame-text-2: #d3dbe6; --mz-frame-text-3: #8e9db2;
+  background: linear-gradient(180deg, var(--gt-navy) 0%, var(--gt-navy-2) 100%); border-inline-end: 0;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+.adm-nav__scroll { padding-top: var(--mz-space-5); scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
+.adm-nav__glabel { color: #7f90a8; letter-spacing: 0.02em; }
+.adm-nav__glabel::before { background: var(--gt-gold); opacity: 0.7; }
+.adm-nav__item { min-height: 44px; border-radius: 12px; font-size: 15px; color: #d3dbe6; }
+.adm-nav__item + .adm-nav__item { margin-top: 3px; }
+.adm-nav__icon { color: #a9b6c8; }
+.adm-nav__icon .adm-icon { width: 20px; height: 20px; }
+.adm-nav__item:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.adm-nav__item[aria-current='page'] {
+  color: #fff; font-weight: 700;
+  background: linear-gradient(135deg, #d8b874 0%, var(--gt-gold) 45%, var(--gt-gold-2) 100%);
+  box-shadow: 0 8px 20px -8px rgba(201, 163, 90, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.adm-nav__item[aria-current='page']::before { display: none; }
+.adm-nav__item[aria-current='page'] .adm-nav__icon { color: #fff; }
+.adm-nav__badge { box-shadow: 0 0 0 2px var(--gt-navy); }
+.adm-nav__foot { border-top-color: rgba(255, 255, 255, 0.08); }
+.adm-nav :focus-visible { outline-color: var(--gt-gold); }
+
+/* ---------------------------------------------------------------- קנבס העבודה */
+.adm-content { background: var(--mz-bg); scrollbar-color: rgba(15, 34, 56, 0.2) transparent; }
+
+/* ---------------------------------------------------------------- טלפון: סרגל עליון כחול */
+@media (max-width: 759.98px) {
+  .adm-mbar { background: var(--gt-navy); color: #fff; border-bottom: 0; box-shadow: 0 4px 16px -8px rgba(10, 25, 43, 0.6); }
+  .adm-mbar__btn:active { background: rgba(255, 255, 255, 0.10); }
+  .adm-mbar__search.is-expanded .adm-gsearch { background: var(--gt-navy); }
+  .adm-mbar__menu.has-badge::after { box-shadow: 0 0 0 2px var(--gt-navy); }
+  .adm-sheet__item[aria-current='page'] { background: linear-gradient(135deg, #d8b874, var(--gt-gold) 45%, var(--gt-gold-2)); color: #fff; border-color: transparent; }
+}
+
+/* ---------------------------------------------------------------- מסך הכניסה: רקע זריחה, כפתור כחול לילה עם קו זהב */
+.adm-login { --gb-green: var(--gt-navy); --gb-gold: var(--gt-gold);
+  background: linear-gradient(180deg, rgba(243, 245, 248, 0.55), rgba(243, 245, 248, 0.92)), url("../../admin/img/gabbai/hero.webp?v=1") center 75% / cover no-repeat; }
+.adm-login .mz-btn--primary { --btn-bg: var(--gt-navy); --btn-bd: var(--gt-navy); --btn-bg-h: var(--gt-navy-3); --btn-bd-h: var(--gt-gold); box-shadow: inset 0 -2px 0 rgba(201, 163, 90, 0.85); }

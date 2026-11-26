@@ -111,7 +111,8 @@ module.exports = (ctx) => {
   let saveT = null;
   const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { fs.writeFileSync(FILE + '.tmp', JSON.stringify(S, null, 1)); fs.renameSync(FILE + '.tmp', FILE); }, 150); };
   const fam = (id) => S.families.find((f) => f.id === id);
-  const famByPhone = (p) => S.families.find((f) => f.phone === normPhone(p));
+  const ALT_PHONES = { '0500000099': '0500000001' }; // הקו העסקי של עמיחי → משפחת לוי (שיחת הדגמה)
+  const famByPhone = (p) => { const n = normPhone(p); return S.families.find((f) => f.phone === n) || S.families.find((f) => f.phone === ALT_PHONES[n]); };
   const ev = (f, kind, text, who) => {
     const e = { id: ++S.seq, at: C.nowISO(), fam: f?.id || null, family: f?.family || null, kind, text: String(text).slice(0, 600), who: who || null };
     S.events.push(e); if (S.events.length > 400) S.events.splice(0, S.events.length - 400); save(); return e;
@@ -181,6 +182,7 @@ module.exports = (ctx) => {
     f.contacts = 0;
     if (f.debt) { f.debt.amount = Math.max(0, f.debt.amount - l.amount); if (!f.debt.amount) f.debt = null; }
     if (f.plan && l.n) f.plan.paid = (f.plan.paid || 0) + 1;
+    if (!f.debt) f.plan = null; // החוב נסגר (גם בקישור מלא בזמן שיש הסדר) — לא להשאיר הסדר ישן שהבוט ימשיך להציע
     const share = Math.round(l.amount * S.fund.sharePct / 100);
     S.fund.got = Math.min(S.fund.goal, S.fund.got + share);
     save();

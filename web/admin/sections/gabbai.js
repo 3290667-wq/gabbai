@@ -130,19 +130,21 @@ export async function mount(el, { setTitle } = {}) {
     stages: { classify: 2, reach: Math.max(1, d.inAgent), negotiate: 2, supervise: 1, pay: 3 },
     ch: { mail: 14, wa: 37, voice: 9 } };
 
-  // ---------- KPIs
-  const kpi = (key, label, sub, tone, ico) => {
+  // ---------- עיצוב «כחול לילה וזהב» (26.11.2026, לפי הרפרנס של עמיחי): פתיח עם זריחה, כרטיסי מדדים בגוונים רכים,
+  // גרף חודשי, משימות ואירועים בצד, וכרטיסי תמונה (תמונות: gpt-image-2, admin/img/gabbai/)
+  const IMG = (n) => new URL(`../img/gabbai/${n}.webp?v=1`, import.meta.url).href;
+  const kpi = (key, label, tone, ico, extra) => {
     const v = h('b', { class: 'gb-kpi__v ui-num', 'data-k': key }, '0');
     return { v, el: h('article', { class: `gb-kpi gb-kpi--${tone}` },
-      h('span', { class: 'gb-kpi__ico', 'aria-hidden': 'true' }, icon(ico, { size: 18 })),
-      h('span', { class: 'gb-kpi__l' }, label), v, h('span', { class: 'gb-kpi__s' }, sub)) };
+      h('span', { class: 'gb-kpi__ico', 'aria-hidden': 'true' }, icon(ico, { size: 26 })),
+      h('span', { class: 'gb-kpi__l' }, label), v, extra || null) };
   };
   const K = {
-    collected: kpi('collected', 'נגבה החודש', 'שכר לימוד מכל אמצעי התשלום', 'gold', 'wallet'),
-    open: kpi('open', 'הוראות קבע שחזרו — פתוחות', `₪${fmt.int(d.openAmount)} שכר לימוד במעקב`, 'warn', 'alert'),
-    agent: kpi('agent', 'בטיפול הסוכן', 'פונה להורים עכשיו, בלי מגע יד', 'live', 'bolt'),
-    human: kpi('human', 'הועברו לנציג אנושי', 'רק מה שבאמת צריך את מזכירות המוסד', 'muted', 'user'),
-    rate: kpi('rate', 'שיעור הצלחה', 'שכר לימוד שנגבה מתוך החיוב', 'ok', 'chart'),
+    agent: kpi('agent', 'בטיפול הסוכן', 'blue', 'bolt'),
+    open: kpi('open', 'הוראות קבע שחזרו', 'rose', 'alert'),
+    human: kpi('human', 'הועברו לנציג', 'amber', 'user'),
+    collected: kpi('collected', 'נגבה החודש', 'green', 'money', h('span', { class: 'gb-kpi__trend' }, '▲ 12%')),
+    rate: kpi('rate', 'שיעור הצלחה', 'plain', 'users'),
   };
   const paintKpis = () => {
     countUp(K.collected.v, st.collected, { money: true }); countUp(K.open.v, st.open); countUp(K.agent.v, st.agent);
@@ -184,34 +186,83 @@ export async function mount(el, { setTitle } = {}) {
       h('span', { class: 'gb-panel__hint' }, 'מתעדכן בזמן אמת')),
     pipeline, h('h3', { class: 'gb-sub' }, 'יומן פעולות חי'), feed);
 
-  // ---------- chart
-  const days = d.days;
-  const chartBox = h('div', { class: 'gb-chart' });
-  const sum14 = days.reduce((s, x) => s + x.v, 0);
-  const chart = h('section', { class: 'gb-panel gb-chartp' },
-    h('header', { class: 'gb-panel__head' }, h('h2', null, 'נגבה ב-14 הימים האחרונים'), h('span', { class: 'gb-panel__hint ui-num' }, `₪${fmt.int(sum14)}`)), chartBox);
-  try {
-    chartBox.append(charts.barChart({ x: days.map((x) => `${+x.iso.slice(8)}/${+x.iso.slice(5, 7)}`), series: [{ name: 'נגבה', y: days.map((x) => x.v) }], unit: '₪', height: 200, legend: false, values: false, title: 'נגבה ליום', tones: days.map(() => 'warn') }));
-  } catch (e) { console.warn('[gabbai] chart', e); }
+  // ---------- גרף חודשי: נגבה בזמן מול מה שהסוכנים החזירו
+  const MONTHS = ['אייר', 'סיון', 'תמוז', 'אב', 'אלול', 'תשרי', 'חשון', 'כסלו'];
+  const top = Math.max(60000, d.collected);
+  const paid = [0.42, 0.48, 0.55, 0.62, 0.74, 0.76, 0.86, 1].map((k) => Math.round(top * k / 10) * 10);
+  const back = paid.map((v, i) => Math.round(v * (0.62 + 0.06 * Math.sin(i * 1.3)) / 10) * 10);
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, a = {}, txt) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); if (txt != null) e.textContent = txt; return e; };
+  const yMax = Math.ceil(Math.max(...paid) / 20000) * 20000 + 20000;
+  const W = 760, H = 250, L = 70, R = 12, T = 12, B = 34, cw = (W - L - R) / MONTHS.length, bw = Math.min(30, cw * 0.27);
+  const y = (v) => T + (H - T - B) * (1 - v / yMax);
+  const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'gb-bars', role: 'img', 'aria-label': `גבייה לפי חודש: ${MONTHS.map((m, i) => `${m} ₪${fmt.int(paid[i])}`).join(', ')}` });
+  for (let t = 0; t <= yMax; t += 20000) {
+    svg.append(sv('line', { x1: L, x2: W - R, y1: y(t), y2: y(t), class: 'gb-bars__grid' }));
+    svg.append(sv('text', { x: L - 12, y: y(t) + 4, 'text-anchor': 'end', class: 'gb-bars__y' }, fmt.int(t)));
+  }
+  MONTHS.forEach((m, i) => {
+    const cx = L + cw * i + cw / 2;
+    const bar = (v, x, cls, k) => { const r = sv('rect', { x, y: y(v), width: bw, height: H - B - y(v), rx: 5, class: cls, style: `--d:${(i * 2 + k) * 45}ms` }); r.append(sv('title', {}, `${m}: ₪${fmt.int(v)}`)); return r; };
+    svg.append(bar(paid[i], cx - bw - 3, 'gb-bars__a', 0), bar(back[i], cx + 3, 'gb-bars__b', 1));
+    svg.append(sv('text', { x: cx, y: H - 10, 'text-anchor': 'middle', class: 'gb-bars__x' }, m));
+  });
+  const chart = h('section', { class: 'gb-card gb-month' },
+    h('header', { class: 'gb-card__head' }, h('h2', null, 'גבייה לפי חודש'),
+      h('ul', { class: 'gb-legend' }, h('li', { class: 'is-a' }, 'נגבה בזמן'), h('li', { class: 'is-b' }, 'הוחזר ע״י הסוכנים'))),
+    h('div', { class: 'gb-bars-wrap' }, svg));
 
-  // ---------- run button
-  const themeBtn = h('button', { class: 'gb-theme', type: 'button' });
+  // ---------- משימות להיום + אירועים קרובים
+  const TASKS = [['לאשר הסדר פריסה — משפחת כהן', false], ['לחזור להורי פרידמן (ביקשו נציג)', false], ['לשלוח קבלות על חודש חשון', true], ['לעדכן מחירון הסעות לטבת', false]];
+  const tasks = h('section', { class: 'gb-card gb-side' },
+    h('header', { class: 'gb-card__head' }, h('h2', null, h('span', { class: 'gb-card__ico' }, icon('check', { size: 20 })), 'משימות להיום')),
+    h('ul', { class: 'gb-tasks' }, TASKS.map(([t, done], i) => h('li', null, h('label', { class: 'gb-task' },
+      h('input', { type: 'checkbox', checked: done ? '' : null, 'aria-label': t }), h('span', null, t))))),
+    h('a', { class: 'gb-more', href: kit.adminHash ? kit.adminHash('tasks') : '#/admin/tasks' }, 'לכל המשימות ←'));
+  const EVENTS_SOON = [['users', 'ישיבת ועד הורים', 'היום · 20:30'], ['calendar', 'חיוב הוראות קבע', 'ראש חודש טבת · 08:00'], ['gift', 'טיול שנתי מקרן הפינוקים', 'יום חמישי · 09:00']];
+  const soon = h('section', { class: 'gb-card gb-side' },
+    h('header', { class: 'gb-card__head' }, h('h2', null, h('span', { class: 'gb-card__ico' }, icon('calendar', { size: 20 })), 'אירועים קרובים')),
+    h('ul', { class: 'gb-soon' }, EVENTS_SOON.map(([ic, t, w]) => h('li', null,
+      h('div', null, h('b', null, t), h('small', null, w)), h('span', { class: 'gb-soon__ico', 'aria-hidden': 'true' }, icon(ic, { size: 20 }))))),
+    h('a', { class: 'gb-more', href: '#/admin/tasks' }, 'לוח אירועים מלא ←'));
+
+  // ---------- כרטיסי תמונה
+  const tile = (img, title, sub, href) => h('a', { class: 'gb-tile', href, style: `--img:url("${IMG(img)}")` },
+    h('span', { class: 'gb-tile__txt' }, h('b', null, title), h('small', null, sub)),
+    h('span', { class: 'gb-tile__go', 'aria-hidden': 'true' }, '‹'));
+  const tiles = h('div', { class: 'gb-tiles' },
+    tile('payments', 'גבייה ותשלומים', 'קבלות, הוראות קבע, קישורי תשלום', '#/admin/payments'),
+    tile('students', 'הורים ותלמידים', 'משפחות, כיתות, כרטיסי הורה', '#/admin/households'),
+    tile('channels', 'ערוצים ושיחות', 'וואטסאפ, מייל ומזכירה טלפונית', '#/admin/messages'));
+
+  // ---------- פתיח
   const runBtn = h('button', { class: 'gb-run', type: 'button' }, icon('bolt', { size: 18 }), h('span', null, 'הפעל סבב גבייה'));
-  const hero = h('header', { class: 'gb-hero' },
+  const liveBtn = h('button', { class: 'gb-parent', type: 'button' }, 'להדגמה החיה ↓');
+  const hr = new Date().getHours();
+  const hello = hr < 12 ? 'בוקר טוב' : hr < 17 ? 'צהריים טובים' : 'ערב טוב';
+  const who = (kit.user?.()?.name || '').split(' ')[0];
+  const now = new Date();
+  const dayName = new Intl.DateTimeFormat('he-IL', { weekday: 'long', timeZone: 'Asia/Jerusalem' }).format(now);
+  const greg = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jerusalem' }).format(now);
+  const heb = kit.hebDate ? kit.hebDate(now) : '';
+  const hero = h('header', { class: 'gb-hero', style: `--hero:url("${IMG('hero')}")` },
+    h('div', { class: 'gb-hero__top' },
+      h('div', { class: 'gb-hero__brand' }, h('span', { class: 'mz-brand__mark gb-hero__mark', 'aria-hidden': 'true' }),
+        h('span', null, h('b', null, 'גבאי · מערכת גבייה'), h('small', null, 'תלמוד תורה «אור התורה»'))),
+      h('div', { class: 'gb-hero__date' }, h('span', null, h('b', null, `${dayName}${heb ? `, ${heb}` : ''}`), h('small', null, greg)),
+        h('span', { class: 'gb-hero__cal', 'aria-hidden': 'true' }, icon('calendar', { size: 22 })))),
     h('div', { class: 'gb-hero__txt' },
-      h('span', { class: 'gb-eyebrow' }, 'גבאי — גבייה חכמה למוסדות חינוך'),
-      h('h1', null, 'חדר הגבייה'),
-      h('p', null, 'הסוכנים גובים שכר לימוד בתלמוד התורה: מזהים הוראת קבע שחזרה, פונים להורים בערוץ הנכון, מגיעים להסדר בכבוד ושולחים קישור תשלום — והמזכירות רואה הכול כאן.')),
-    h('div', { class: 'gb-hero__acts' }, runBtn,
-      h('a', { class: 'gb-parent', href: new URL('parent/', document.baseURI).href, target: '_blank', rel: 'noopener' }, 'תצוגת הורה ↗'), themeBtn));
+      h('h1', null, `${hello}${who ? `, ${who}` : ''},`),
+      h('p', null, 'כל הגבייה, ההורים והסוכנים — במקום אחד')),
+    h('div', { class: 'gb-hero__acts' }, runBtn, liveBtn,
+      h('a', { class: 'gb-parent', href: new URL('parent/', document.baseURI).href, target: '_blank', rel: 'noopener' }, 'תצוגת הורה ↗')));
 
-  const page = h('div', { class: 'gb' }, hero, livePanel(timers), persona.panel(timers),
+  const live = livePanel(timers);
+  liveBtn.addEventListener('click', () => live.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }));
+  const page = h('div', { class: 'gb' }, hero,
     h('div', { class: 'gb-kpis' }, Object.values(K).map((k) => k.el)),
-    channels, h('div', { class: 'gb-two' }, agents, chart));
-  // מצב יום ברירת מחדל; לילה רק אם נבחר ונשמר
-  const paintTheme = () => { const night = localStorage.getItem('gb-theme') === 'night'; page.classList.toggle('gb--night', night); themeBtn.textContent = night ? '☀ מצב יום' : '☾ מצב לילה'; themeBtn.setAttribute('aria-pressed', String(night)); };
-  themeBtn.addEventListener('click', () => { localStorage.setItem('gb-theme', page.classList.contains('gb--night') ? 'day' : 'night'); paintTheme(); });
-  paintTheme();
+    h('div', { class: 'gb-main' }, h('div', { class: 'gb-col' }, chart, tiles), h('div', { class: 'gb-aside' }, tasks, soon)),
+    live, persona.panel(timers), channels, agents);
   el.replaceChildren(page, phoneSim(timers));
   paintKpis();
 
